@@ -744,6 +744,55 @@ func TestBulkDelete(t *testing.T) {
 	}
 }
 
+// TestDeleteIdempotent verifies that deleting a set of IDs where some no longer
+// exist succeeds and removes the ones that do exist. This guards against the race
+// where a concurrent deleter (e.g. config-change driven GC) removes operations
+// between the time RemoveRepo collects IDs and the time it deletes them.
+func TestDeleteIdempotent(t *testing.T) {
+	t.Parallel()
+	for name, store := range StoresForTest(t) {
+		t.Run(name, func(t *testing.T) {
+			log, err := oplog.NewOpLog(store)
+			if err != nil {
+				t.Fatalf("error creating oplog: %v", err)
+			}
+
+			op := &v1.Operation{
+				UnixTimeStartMs: 1234,
+				PlanId:          "plan1",
+				RepoId:          "repo1",
+				RepoGuid:        "repo1",
+				InstanceId:      "instance1",
+				Op:              &v1.Operation_OperationBackup{},
+			}
+			if err := log.Add(op); err != nil {
+				t.Fatalf("error adding operation: %s", err)
+			}
+
+			// Delete an existing ID alongside IDs that never existed; this must not error.
+			if err := log.Delete(op.Id, op.Id+1000, op.Id+1001); err != nil {
+				t.Fatalf("expected idempotent delete to succeed, got: %s", err)
+			}
+
+			// Deleting an already-deleted ID again must also succeed.
+			if err := log.Delete(op.Id); err != nil {
+				t.Fatalf("expected delete of missing id to succeed, got: %s", err)
+			}
+
+			var count int
+			if err := log.Query(oplog.Query{}, func(op *v1.Operation) error {
+				count++
+				return nil
+			}); err != nil {
+				t.Fatalf("error querying operations: %s", err)
+			}
+			if count != 0 {
+				t.Errorf("expected 0 operations after deletion, got %d", count)
+			}
+		})
+	}
+}
+
 func TestQueryMetadata(t *testing.T) {
 	t.Parallel()
 	for name, store := range StoresForTest(t) {

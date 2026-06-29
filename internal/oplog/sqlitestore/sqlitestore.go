@@ -661,23 +661,17 @@ func (m *SqliteStore) deleteHelper(tx *sql.Tx, opID ...int64) ([]*v1.Operation, 
 		return nil, fmt.Errorf("load operations for delete: rows err: %v", err)
 	}
 
-	if len(ops) != len(opID) {
-		return nil, fmt.Errorf("couldn't find all operations to delete: %w", oplog.ErrNotExist)
-	}
-
-	// Delete the operations
-	res, err := tx.ExecContext(context.Background(), "DELETE FROM operations WHERE "+predicateStr, args...)
-	if err != nil {
+	// Deletion is idempotent: we delete whatever currently exists and ignore IDs
+	// that are already gone. Concurrent deleters (config-change driven task
+	// cancellation, garbage collection, hook-execution cleanup) may race with this
+	// call and remove some of these operations first; treating that as an error
+	// would spuriously fail otherwise-valid requests such as RemoveRepo.
+	if _, err := tx.ExecContext(context.Background(), "DELETE FROM operations WHERE "+predicateStr, args...); err != nil {
 		return nil, fmt.Errorf("delete operations: %v", err)
 	}
-	rowsAffected, err := res.RowsAffected()
-	if err != nil {
-		return nil, fmt.Errorf("delete operations: get rows affected: %v", err)
-	}
-	if int(rowsAffected) != len(opID) {
-		return nil, fmt.Errorf("expected to delete %d operations, but deleted %d", len(opID), rowsAffected)
-	}
 
+	// Return only the operations that actually existed and were deleted so that
+	// subscribers are notified for exactly what was removed.
 	return ops, nil
 }
 
