@@ -222,6 +222,46 @@ npm install -g @bufbuild/protoc-gen-es
 (cd cmd/backrest && go build .)
 ```
 
+## 本地开发启动（热重载）
+
+日常开发时，把后端和前端作为两个独立进程分别启动。Vite 开发服务器以热模块替换（HMR）的方式提供 WebUI，并把 API 请求代理到后端，因此前端改动会立即生效，无需重新构建。
+
+
+**1. 先启动前端**（Vite 开发服务器，地址 `http://localhost:5173`）：
+
+```sh
+cd webui
+pnpm i           # 仅首次需要
+pnpm start       # 将 /v1 及 API 请求代理到 http://localhost:9898
+```
+
+**2. 再运行后端**（在 `127.0.0.1:9898` 上提供 API）：
+
+如果没有安装air的话，需要先安装
+```bash
+go install github.com/air-verse/air@latest
+```
+运行项目：
+```sh
+cd cmd/backrest && BACKREST_DATA=/tmp/backrest-dev/data && BACKREST_CONFIG=/tmp/backrest-dev/config.json && air
+```
+
+
+然后打开 **http://localhost:5173**（不是 `:9898`）。首次运行时会自动把 restic 二进制下载到 data 目录中。
+
+注意事项：
+
+- 前端（`webui/src`）改动会自动热重载，无需手动刷新。
+- 后端 Go 代码改动需要重启 `go run .` 进程（后端不支持热重载）。
+- 修改 `proto/` 下的 protobuf 定义后，需要重新生成共享绑定代码（前端和后端都依赖 `gen/`）：
+
+```sh
+buf generate
+```
+
+> [!NOTE]
+> 下文的 Nix + direnv 方式以及 VSCode Dev Container 都要求启用 Nix flakes。如果你的环境未启用 flakes，请手动安装工具链（参见 [Manual Setup](#manual-setup)），并直接使用上面的命令进行开发。
+
 ## Using VSCode Dev Containers
 
 The dev container uses Nix and direnv to provide all dependencies. When the container starts, `direnv allow` runs automatically so the Nix shell is activated in every terminal.

@@ -13,3 +13,4 @@ cmd/backrest/backrest
 .gemini
 .claude
 webui/dist-backup/
+tmp
