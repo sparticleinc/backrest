@@ -7,6 +7,7 @@ import {
   DialogRoot,
 } from "@chakra-ui/react";
 import { Button } from "../ui/button";
+import * as m from "../../paraglide/messages";
 import { IconType } from "react-icons";
 import {
   FiAlertCircle,
@@ -299,8 +300,9 @@ export const TwoPaneModal: React.FC<TwoPaneModalProps> = ({
                         display="inline-block"
                       />
                       <Text fontSize="sm" color="orange.800" _dark={{ color: "orange.200" }} fontWeight="medium">
-                        {dirtyCount} unsaved{" "}
-                        {dirtyCount === 1 ? "change" : "changes"}
+                        {dirtyCount === 1
+                          ? m.two_pane_unsaved_change({ count: dirtyCount })
+                          : m.two_pane_unsaved_changes({ count: dirtyCount })}
                       </Text>
                       {errorCount > 0 && (
                         <Flex
@@ -312,8 +314,9 @@ export const TwoPaneModal: React.FC<TwoPaneModalProps> = ({
                           _dark={{ color: "red.300" }}
                         >
                           <FiAlertCircle size={12} />
-                          {errorCount} {errorCount === 1 ? "error" : "errors"} to
-                          fix
+                          {errorCount === 1
+                            ? m.two_pane_error_to_fix({ count: errorCount })
+                            : m.two_pane_errors_to_fix({ count: errorCount })}
                         </Flex>
                       )}
                     </>
@@ -323,13 +326,13 @@ export const TwoPaneModal: React.FC<TwoPaneModalProps> = ({
                         <FiCheck size={13} />
                       </Box>
                       <Text fontSize="sm" color="fg.muted">
-                        All changes saved
+                        {m.two_pane_all_saved()}
                       </Text>
                     </>
                   )}
                 </Flex>
                 <Button variant="ghost" size="sm" onClick={onClose}>
-                  Cancel
+                  {m.button_cancel()}
                 </Button>
                 <Button
                   variant="outline"
@@ -338,7 +341,7 @@ export const TwoPaneModal: React.FC<TwoPaneModalProps> = ({
                   disabled={!dirty}
                   opacity={dirty ? 1 : 0.45}
                 >
-                  Discard changes
+                  {m.two_pane_discard_changes()}
                 </Button>
                 <Button
                   size="sm"
@@ -349,12 +352,12 @@ export const TwoPaneModal: React.FC<TwoPaneModalProps> = ({
                   {saving ? (
                     <>
                       <FiLoader size={12} className="spin" />
-                      Saving…
+                      {m.two_pane_saving()}
                     </>
                   ) : (
                     <>
                       <FiCheck size={12} />
-                      Save changes
+                      {m.two_pane_save_changes()}
                     </>
                   )}
                 </Button>

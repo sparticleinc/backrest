@@ -100,13 +100,6 @@ const cronstrueLocale = (): string => {
     zh: "zh_CN",
     ja: "ja",
     en: "en",
-    de: "de",
-    es: "es",
-    fr: "fr",
-    it: "it",
-    pt: "pt_BR",
-    ru: "ru",
-    id: "id",
   };
   return map[getLocale()] || "en";
 };

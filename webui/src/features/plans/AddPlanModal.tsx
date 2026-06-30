@@ -261,15 +261,15 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
   // Scope（权限范围）、Retention（保留策略）、Advanced（高级设置）默认隐藏，
   // 仅 URL 带 ?debug=1 时展示
   const sections: SectionDef[] = [
-    { id: "details", label: "Details", icon: <FiFileText size={14} /> },
+    { id: "details", label: m.add_plan_modal_section_details(), icon: <FiFileText size={14} /> },
     ...(debug
-      ? [{ id: "scope", label: "Scope", icon: <FiFolder size={14} /> }]
+      ? [{ id: "scope", label: m.settings_peer_permission_scopes(), icon: <FiFolder size={14} /> }]
       : []),
-    { id: "schedule", label: "Schedule", icon: <FiClock size={14} /> },
+    { id: "schedule", label: m.add_plan_modal_field_schedule(), icon: <FiClock size={14} /> },
     ...(debug
       ? [
-          { id: "retention", label: "Retention", icon: <FiArchive size={14} /> },
-          { id: "advanced", label: "Advanced", icon: <FiSliders size={14} /> },
+          { id: "retention", label: m.add_plan_modal_retention_policy_label(), icon: <FiArchive size={14} /> },
+          { id: "advanced", label: m.add_plan_modal_advanced_label(), icon: <FiSliders size={14} /> },
         ]
       : []),
   ];
@@ -316,7 +316,7 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
         <SectionCard
           icon={<FiFileText size={16} />}
           title={m.add_plan_modal_section_details()}
-          description="Plan name and target repository."
+          description={m.add_plan_modal_section_details_desc()}
         >
           <Stack gap={4}>
             <Field
@@ -413,7 +413,7 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
         <SectionCard
           icon={<FiFolder size={16} />}
           title={m.settings_peer_permission_scopes()}
-          description="Directories and exclusion patterns."
+          description={m.add_plan_modal_section_scope_desc()}
         >
           <Stack gap={4}>
             <DynamicList
@@ -479,7 +479,7 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
         <SectionCard
           icon={<FiClock size={16} />}
           title={m.add_plan_modal_field_schedule()}
-          description="When backups run automatically."
+          description={m.add_plan_modal_section_schedule_desc()}
         >
           {/* 普通用户用简易调度（每天/每周/每月），?debug=1 时切换到完整 cron 编辑器 */}
           {debug ? (
@@ -526,7 +526,7 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
         <SectionCard
           icon={<FiSliders size={16} />}
           title={m.add_plan_modal_advanced_label()}
-          description="Extra flags and notification hooks."
+          description={m.add_plan_modal_section_advanced_desc()}
         >
           <Stack gap={4}>
             <DynamicList
