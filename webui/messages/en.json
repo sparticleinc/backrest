@@ -195,7 +195,6 @@
   "app_breadcrumb_repo": "Repo",
   "app_breadcrumb_peer": "Peer",
   "app_breadcrumb_plan": "Plan",
-  "app_breadcrumb_summary": "Summary",
   "app_breadcrumb_getting_started": "Getting Started",
   "app_page_not_found": "Page not found",
   "app_repo_not_found": "Repo {repoId} not found",

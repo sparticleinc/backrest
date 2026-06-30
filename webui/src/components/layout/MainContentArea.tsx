@@ -20,7 +20,7 @@ export const MainContentAreaTemplate = ({
 }) => {
   return (
     <Box px={6} pb={6}>
-      <BreadcrumbRoot my={4}>
+      <BreadcrumbRoot>
         {breadcrumbs.map((b, i) => {
           const isLast = i === breadcrumbs.length - 1;
           if (isLast) {
@@ -41,7 +41,7 @@ export const MainContentAreaTemplate = ({
         })}
       </BreadcrumbRoot>
       <Box
-        p={6}
+        px={6}
         m={0}
         minH={280}
         bg="bg.panel" // Using semantic token for generic background

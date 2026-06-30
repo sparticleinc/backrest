@@ -8,7 +8,6 @@ import {
   FiSettings,
   FiLoader,
   FiRadio,
-  FiActivity, // Added as a placeholder/guess for ActivityBar if needed, or stick to component
   FiServer,
   FiEdit2,
   FiMenu,
@@ -48,11 +47,8 @@ import {
 import { Config, Multihost_Peer, Plan, Repo } from "../../gen/ts/v1/config_pb";
 import { alerts } from "../components/common/Alerts";
 import { useShowModal } from "../components/common/ModalManager";
-import { uiBuildVersion } from "../state/buildcfg";
-import { ActivityBar } from "../components/layout/ActivityBar";
 import { OperationStatus } from "../../gen/ts/v1/operations_pb";
 import { useResourceStatus } from "../api/resourceStatus";
-import LogoSvg from "../../assets/logo.svg";
 import { keyBy } from "../lib/util";
 import { Code } from "@connectrpc/connect";
 import { LoginModal } from "../features/auth/LoginModal";
@@ -74,7 +70,6 @@ import { create } from "@bufbuild/protobuf";
 import { PeerState, PlanMetadata, RepoMetadata, SetRemoteClientConfigRequestSchema } from "../../gen/ts/v1sync/syncservice_pb";
 import { useSyncStates } from "../state/peerStates";
 import * as m from "../paraglide/messages";
-import { Link } from "../components/ui/link";
 import { EmptyState } from "../components/ui/empty-state";
 import { ColorModeButton } from "../components/ui/color-mode";
 
@@ -889,47 +884,40 @@ export const App: React.FC = () => {
         align="center"
         px={4}
         h="60px"
-        bg="#1b232c" // Maintain original brand color
-        color="white"
+        bg="bg.panel"
+        color="fg"
+        borderBottomWidth="1px"
+        borderColor="border"
         flexShrink={0}
       >
         <Box display={{ base: "block", lg: "none" }} mr={2}>
           <MobileNavTrigger />
         </Box>
-        <Box as="a" cursor="pointer" onClick={() => navigate("/")} mr={4}>
-          <img src={LogoSvg} style={{ height: "30px", marginBottom: "-4px" }} />
+        <Box
+          as="a"
+          cursor="pointer"
+          onClick={() => navigate("/")}
+          mr={4}
+          fontWeight="bold"
+          fontSize="lg"
+          whiteSpace="nowrap"
+        >
+          GBase Onprem Backup
         </Box>
-
-        <Flex align="baseline" gap={4}>
-          <Link
-            href="https://github.com/garethgeorge/backrest"
-            target="_blank"
-            color="whiteAlpha.700"
-            fontSize="xs"
-            display={{ base: "none", lg: "block" }}
-          >
-            {uiBuildVersion}
-          </Link>
-          <Box fontSize="xs">
-            <ActivityBar />
-          </Box>
-        </Flex>
 
         <Flex ml="auto" align="center" gap={4}>
           <Text
             fontSize="xs"
-            color="whiteAlpha.600"
+            color="fg.muted"
             display={{ base: "none", lg: "block" }}
           >
             {config && config.instance ? config.instance : undefined}
           </Text>
-          <ColorModeButton color="white" />
+          <ColorModeButton />
           {config && !config.auth?.disabled && (
             <Button
               variant="ghost"
               size="sm"
-              color="white"
-              _hover={{ bg: "whiteAlpha.200" }}
               onClick={() => {
                 setAuthToken("");
                 window.location.reload();
@@ -960,9 +948,7 @@ export const App: React.FC = () => {
                 <Route
                   path="/"
                   element={
-                    <MainContentAreaTemplate
-                      breadcrumbs={[{ title: m.app_breadcrumb_summary() }]}
-                    >
+                    <MainContentAreaTemplate breadcrumbs={[]}>
                       <SummaryDashboard />
                     </MainContentAreaTemplate>
                   }

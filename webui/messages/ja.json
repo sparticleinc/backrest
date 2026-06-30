@@ -192,7 +192,6 @@
   "app_breadcrumb_repo": "リポジトリ",
   "app_breadcrumb_peer": "ピア",
   "app_breadcrumb_plan": "プラン",
-  "app_breadcrumb_summary": "概要",
   "app_breadcrumb_getting_started": "はじめに",
   "app_page_not_found": "ページが見つかりませんでした",
   "app_repo_not_found": "リポジトリ {repoId} が見つかりませんでした",

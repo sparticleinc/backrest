@@ -132,7 +132,6 @@
   "app_breadcrumb_repo": "备份仓库",
   "app_breadcrumb_peer": "对等节点",
   "app_breadcrumb_plan": "备份计划",
-  "app_breadcrumb_summary": "摘要",
   "app_breadcrumb_getting_started": "快速入门",
   "app_page_not_found": "页面未找到",
   "app_repo_not_found": "备份仓库 {repoId} 未找到",
