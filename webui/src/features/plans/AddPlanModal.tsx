@@ -1,4 +1,5 @@
 import {
+  Box,
   Flex,
   Stack,
   Input,
@@ -29,6 +30,7 @@ import {
 import { FiFileText, FiFolder, FiClock, FiArchive, FiSliders } from "react-icons/fi";
 import { alerts, formatErrorAlert } from "../../components/common/Alerts";
 import { namePattern } from "../../lib/util";
+import { useDebug } from "../../lib/debug";
 import { ConfirmButton } from "../../components/common/SpinButton";
 import { useConfig } from "../../app/provider";
 import { backrestService } from "../../api/client";
@@ -47,6 +49,7 @@ import {
   ScheduleFormItem,
   ScheduleDefaultsDaily,
 } from "../../components/common/ScheduleFormItem";
+import { SimpleScheduleFormItem } from "../../components/common/SimpleScheduleFormItem";
 import {
   HooksFormList,
   hooksListTooltipText,
@@ -61,20 +64,27 @@ import { SectionCard } from "../../components/common/SectionCard";
 
 // Default Plan
 const planDefaults = create(PlanSchema, {
+  // 默认权限范围：备份服务数据目录
+  paths: ["/userdata"],
   schedule: {
     schedule: {
       case: "cron",
-      value: "0 * * * *",
+      // 每天凌晨 0 点（服务器本地时间，部署在日本东京时区）
+      value: "0 0 * * *",
     },
     clock: Schedule_Clock.LOCAL,
   },
+  // 与创建仓库时的 forgetPolicy 保留策略保持一致
   retention: {
     policy: {
       case: "policyTimeBucketed",
       value: {
-        hourly: 24,
-        daily: 30,
-        monthly: 12,
+        hourly: 6,
+        daily: 7,
+        weekly: 4,
+        monthly: 6,
+        yearly: 2,
+        keepLastN: 5,
       },
     },
   },
@@ -84,6 +94,9 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
   const [confirmLoading, setConfirmLoading] = useState(false);
   const showModal = useShowModal();
   const [config, setConfig] = useConfig();
+
+  // 调试模式：URL 中带 ?debug=1 时显示被默认隐藏的高级表单。
+  const debug = useDebug();
 
   const [formData, setFormData] = useState<any>(
     template
@@ -245,12 +258,20 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
     ],
   });
 
+  // Scope（权限范围）、Retention（保留策略）、Advanced（高级设置）默认隐藏，
+  // 仅 URL 带 ?debug=1 时展示
   const sections: SectionDef[] = [
     { id: "details", label: "Details", icon: <FiFileText size={14} /> },
-    { id: "scope", label: "Scope", icon: <FiFolder size={14} /> },
+    ...(debug
+      ? [{ id: "scope", label: "Scope", icon: <FiFolder size={14} /> }]
+      : []),
     { id: "schedule", label: "Schedule", icon: <FiClock size={14} /> },
-    { id: "retention", label: "Retention", icon: <FiArchive size={14} /> },
-    { id: "advanced", label: "Advanced", icon: <FiSliders size={14} /> },
+    ...(debug
+      ? [
+          { id: "retention", label: "Retention", icon: <FiArchive size={14} /> },
+          { id: "advanced", label: "Advanced", icon: <FiSliders size={14} /> },
+        ]
+      : []),
   ];
 
   const footer = (
@@ -294,7 +315,7 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
       <TwoPaneSection id="details">
         <SectionCard
           icon={<FiFileText size={16} />}
-          title={m.op_row_backup_details()}
+          title={m.add_plan_modal_section_details()}
           description="Plan name and target repository."
         >
           <Stack gap={4}>
@@ -367,12 +388,27 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
                   ))}
                 </SelectContent>
               </SelectRoot>
+              {allRepos.length === 0 && (
+                <Box
+                  mt={2}
+                  p={3}
+                  borderWidth={1}
+                  borderRadius="md"
+                  borderColor="yellow.400"
+                  bg="yellow.subtle"
+                >
+                  <CText fontSize="sm" color="yellow.700">
+                    {m.add_plan_modal_no_repos_warning()}
+                  </CText>
+                </Box>
+              )}
             </Field>
           </Stack>
         </SectionCard>
       </TwoPaneSection>
 
-      {/* Scope Section */}
+      {/* Scope Section：权限范围默认隐藏，仅 ?debug=1 时展示 */}
+      {debug && (
       <TwoPaneSection id="scope">
         <SectionCard
           icon={<FiFolder size={16} />}
@@ -436,6 +472,7 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
           </Stack>
         </SectionCard>
       </TwoPaneSection>
+      )}
 
       {/* Schedule Section */}
       <TwoPaneSection id="schedule">
@@ -444,14 +481,25 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
           title={m.add_plan_modal_field_schedule()}
           description="When backups run automatically."
         >
-          <ScheduleFormItem
-            value={getField(["schedule"])}
-            onChange={(v: any) => updateField(["schedule"], v)}
-            defaults={ScheduleDefaultsDaily}
-          />
+          {/* 普通用户用简易调度（每天/每周/每月），?debug=1 时切换到完整 cron 编辑器 */}
+          {debug ? (
+            <ScheduleFormItem
+              value={getField(["schedule"])}
+              onChange={(v: any) => updateField(["schedule"], v)}
+              defaults={ScheduleDefaultsDaily}
+            />
+          ) : (
+            <SimpleScheduleFormItem
+              value={getField(["schedule"])}
+              onChange={(v: any) => updateField(["schedule"], v)}
+            />
+          )}
         </SectionCard>
       </TwoPaneSection>
 
+      {/* Retention（保留策略）/ Advanced（高级设置）默认隐藏，仅 ?debug=1 时展示 */}
+      {debug && (
+      <>
       {/* Retention Section */}
       <TwoPaneSection id="retention">
         <SectionCard
@@ -504,8 +552,11 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
           </Stack>
         </SectionCard>
       </TwoPaneSection>
+      </>
+      )}
 
-      {/* JSON Preview */}
+      {/* JSON Preview：默认隐藏，仅 ?debug=1 时展示 */}
+      {debug && (
       <AccordionRoot collapsible variant="plain">
         <AccordionItem value="json-preview">
           <AccordionItemTrigger>
@@ -527,6 +578,7 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
           </AccordionItemContent>
         </AccordionItem>
       </AccordionRoot>
+      )}
     </TwoPaneModal>
   );
 };

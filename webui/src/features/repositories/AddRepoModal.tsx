@@ -14,6 +14,8 @@ import { useShowModal } from "../../components/common/ModalManager";
 import {
   CommandPrefix_CPUNiceLevel,
   CommandPrefix_IONiceLevel,
+  Hook_Condition,
+  Hook_OnError,
   Repo,
   RepoSchema,
   Schedule_Clock,
@@ -26,6 +28,7 @@ import { StringValueSchema } from "../../../gen/ts/types/value_pb";
 import { URIAutocomplete } from "../../components/common/URIAutocomplete";
 import { alerts, formatErrorAlert } from "../../components/common/Alerts";
 import { namePattern } from "../../lib/util";
+import { useDebug } from "../../lib/debug";
 import { backrestService } from "../../api/client";
 import { ConfirmButton } from "../../components/common/SpinButton";
 import { useConfig } from "../../app/provider";
@@ -79,44 +82,48 @@ import {
 } from "../../components/ui/accordion";
 
 const repoDefaults = create(RepoSchema, {
+  id: 'local-repo',
+  uri: '/userdata',
   prunePolicy: {
     maxUnusedPercent: 10,
     schedule: {
       schedule: {
         case: "cron",
-        value: "0 0 1 * *",
+        // 每周日当地时间凌晨 5 点开始清理
+        value: "0 5 * * 0",
       },
-      clock: Schedule_Clock.LAST_RUN_TIME,
+      clock: Schedule_Clock.LOCAL,
     },
   },
   checkPolicy: {
     schedule: {
       schedule: {
         case: "cron",
-        value: "0 0 1 * *",
+        // 每月 1 号当地时间凌晨 4 点
+        value: "0 4 1 * *",
       },
-      clock: Schedule_Clock.LAST_RUN_TIME,
+      clock: Schedule_Clock.LOCAL,
     },
   },
-  // ForgetPolicy defaults to a disabled schedule. Per-plan retention
-  // policies handle the common case; the repo-level forget is opt-in.
-  // We still seed a clock and a reasonable retention so the UI doesn't
-  // start with empty/zero fields when the user enables it.
   forgetPolicy: {
     schedule: {
       schedule: {
-        case: "disabled",
-        value: true,
+        case: "cron",
+        // 每周六当地时间凌晨 5 点开始
+        value: "0 5 * * 6",
       },
-      clock: Schedule_Clock.LAST_RUN_TIME,
+      clock: Schedule_Clock.LOCAL,
     },
     retention: {
       policy: {
         case: "policyTimeBucketed",
         value: {
-          hourly: 24,
-          daily: 30,
-          monthly: 12,
+          hourly: 6,
+          daily: 7,
+          weekly: 4,
+          monthly: 6,
+          yearly: 2,
+          keepLastN: 5, // 最新（数量）：无论时间，至少保留最近 5 个快照
         },
       },
     },
@@ -125,6 +132,19 @@ const repoDefaults = create(RepoSchema, {
     ioNice: CommandPrefix_IONiceLevel.IO_DEFAULT,
     cpuNice: CommandPrefix_CPUNiceLevel.CPU_DEFAULT,
   },
+  // 默认命令钩子：备份开始前导出各服务数据到 ./userdata（见
+  // gbase_onprem_deploy_config/shells/backup/backup.sh）。导出失败则取消本次操作，
+  // 避免对不完整数据打快照。
+  hooks: [
+    {
+      conditions: [Hook_Condition.SNAPSHOT_START],
+      onError: Hook_OnError.CANCEL,
+      action: {
+        case: "actionCommand",
+        value: { command: "bash /shells/backup/backup.sh" },
+      },
+    },
+  ],
 });
 
 interface ConfirmationState {
@@ -314,6 +334,9 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
   const showModal = useShowModal();
   const [config, setConfig] = useConfig();
   const isRemoteOrigin = !!template?.originInstanceId;
+
+  // 调试模式：URL 中带 ?debug=1 时显示被默认隐藏的高级表单。
+  const debug = useDebug();
 
   const [formData, setFormData] = useState<any>(
     template
@@ -661,11 +684,17 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
   ];
 
   const sections: SectionDef[] = [
-    { id: "identity", label: "Identity", icon: <FiTag size={14} /> },
-    { id: "connection", label: "Connection", icon: <FiLink size={14} /> },
-    { id: "scheduling", label: "Scheduling", icon: <FiClock size={14} /> },
-    { id: "hooks", label: "Hooks", icon: <FiZap size={14} /> },
-    { id: "advanced", label: "Advanced", icon: <FiSliders size={14} /> },
+    { id: "identity", label: m.add_repo_modal_section_identity(), icon: <FiTag size={14} /> },
+    { id: "connection", label: m.add_repo_modal_section_connection(), icon: <FiLink size={14} /> },
+    // Scheduling（Prune/Check/Forget/Retention）、Hooks、Advanced 默认隐藏，
+    // 仅 URL 带 ?debug=1 时展示
+    ...(debug
+      ? [
+          { id: "scheduling", label: "Scheduling", icon: <FiClock size={14} /> },
+          { id: "hooks", label: "Hooks", icon: <FiZap size={14} /> },
+          { id: "advanced", label: "Advanced", icon: <FiSliders size={14} /> },
+        ]
+      : []),
   ];
 
   const footer = (
@@ -751,7 +780,7 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
           <TwoPaneSection id="identity">
             <SectionCard
               icon={<FiTag size={16} />}
-              title="Identity"
+              title={m.add_repo_modal_section_identity()}
               description="Display name, identifiers, and unlock behaviour."
             >
               <Stack gap={4}>
@@ -787,23 +816,28 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
                   />
                 </Field>
 
-                <ToggleField
-                  checked={getField(["autoUnlock"]) || false}
-                  onChange={(v) => updateField(["autoUnlock"], v)}
-                  label={m.add_repo_modal_field_auto_unlock()}
-                  hint={m.add_repo_modal_field_auto_unlock_tooltip()}
-                />
+                {/* 自动解锁 / Shared 选项默认隐藏，URL 带 ?debug=1 时展示 */}
+                {debug && (
+                  <>
+                    <ToggleField
+                      checked={getField(["autoUnlock"]) || false}
+                      onChange={(v) => updateField(["autoUnlock"], v)}
+                      label={m.add_repo_modal_field_auto_unlock()}
+                      hint={m.add_repo_modal_field_auto_unlock_tooltip()}
+                    />
 
-                <ToggleField
-                  checked={getField(["shared"]) || false}
-                  onChange={(v) => updateField(["shared"], v)}
-                  label="Shared"
-                  hint="If using multihost management, enables sharing this repo's configuration to all authorized clients with read permission."
-                />
-                {getField(["shared"]) && (
-                  <CText fontSize="sm" color="orange.500">
-                    {m.add_repo_modal_shared_forget_hint()}
-                  </CText>
+                    <ToggleField
+                      checked={getField(["shared"]) || false}
+                      onChange={(v) => updateField(["shared"], v)}
+                      label="Shared"
+                      hint="If using multihost management, enables sharing this repo's configuration to all authorized clients with read permission."
+                    />
+                    {getField(["shared"]) && (
+                      <CText fontSize="sm" color="orange.500">
+                        {m.add_repo_modal_shared_forget_hint()}
+                      </CText>
+                    )}
+                  </>
                 )}
               </Stack>
             </SectionCard>
@@ -813,7 +847,7 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
           <TwoPaneSection id="connection">
             <SectionCard
               icon={<FiLink size={16} />}
-              title="Connection"
+              title={m.add_repo_modal_section_connection()}
               description="Where the repo lives and how Backrest authenticates."
             >
               <Stack gap={4}>
@@ -868,17 +902,6 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
                     !template ? (
                       <>
                         {m.add_repo_modal_field_password_tooltip_intro()}
-                        <Box as="ul" ml={4} mt={1}>
-                          <li>
-                            {m.add_repo_modal_field_password_tooltip_entropy()}
-                          </li>
-                          <li>
-                            {m.add_repo_modal_field_password_tooltip_env()}
-                          </li>
-                          <li>
-                            {m.add_repo_modal_field_password_tooltip_generate()}
-                          </li>
-                        </Box>
                       </>
                     ) : undefined
                   }
@@ -924,7 +947,8 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
             </SectionCard>
           </TwoPaneSection>
 
-          {/* Scheduling Section */}
+          {/* Scheduling Section：Prune/Check/Forget/Retention 策略默认隐藏，仅 ?debug=1 时展示 */}
+          {debug && (
           <TwoPaneSection id="scheduling">
             <SectionCard
               icon={<FiClock size={16} />}
@@ -1018,7 +1042,11 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
               </Stack>
             </SectionCard>
           </TwoPaneSection>
+          )}
 
+          {/* Hooks / Advanced / JSON 预览默认隐藏，仅 ?debug=1 时展示 */}
+          {debug && (
+          <>
           {/* Hooks Section */}
           <TwoPaneSection id="hooks">
             <SectionCard
@@ -1121,6 +1149,8 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
               </AccordionItemContent>
             </AccordionItem>
           </AccordionRoot>
+          </>
+          )}
         </Box>
       </TwoPaneModal>
     </>

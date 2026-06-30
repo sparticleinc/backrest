@@ -47,6 +47,7 @@ import {
 } from "../../components/ui/select";
 import { useConfig } from "../../app/provider";
 import { useUserPreferences } from "../../lib/userPreferences";
+import { useDebug } from "../../lib/debug";
 import {
   TwoPaneModal,
   TwoPaneSection,
@@ -59,6 +60,9 @@ export const SettingsModal = () => {
   const [config, setConfig] = useConfig();
   const showModal = useShowModal();
   const peerStates = useSyncStates();
+
+  // 调试模式：URL 中带 ?debug=1 时显示被默认隐藏的高级设置。
+  const debug = useDebug();
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [reloadOnCancel, setReloadOnCancel] = useState(false);
 
@@ -78,7 +82,7 @@ export const SettingsModal = () => {
   const [formData, setFormData] = useState<any>(() => {
     if (!config) return null;
     return {
-      instance: config.instance || "",
+      instance: config.instance || "gbase_onprem_backrest_server",
       auth: {
         disabled: config.auth?.disabled || false,
         users:
@@ -101,8 +105,11 @@ export const SettingsModal = () => {
     };
   });
 
+  // 初始快照须反映「已持久化」的配置，而非已注入默认值的表单——否则当
+  // config.instance 为空、表单预填了默认实例 ID 时，dirty 会误判为 false，
+  // 导致这个从未保存过的默认值无法保存（保存按钮一直灰着）。
   const [initialFormData, setInitialFormData] = useState(() =>
-    JSON.stringify(formData),
+    JSON.stringify({ ...formData, instance: config?.instance || "" }),
   );
   const dirty = JSON.stringify(formData) !== initialFormData;
 
@@ -244,7 +251,9 @@ export const SettingsModal = () => {
   const sections: SectionDef[] = [
     { id: "general", label: "General", icon: <FiSettings size={14} /> },
     { id: "auth", label: "Authentication", icon: <FiLock size={14} /> },
-    ...(isMultihostSyncEnabled
+    // 多主机（身份与共享 / Pairing Tokens / 已授权实例 / 已知主机）默认隐藏，
+    // 仅 URL 带 ?debug=1 时展示
+    ...(isMultihostSyncEnabled && debug
       ? [
           {
             id: "multihost",
@@ -303,7 +312,8 @@ export const SettingsModal = () => {
               />
             </Field>
 
-            <UserSettingsForm />
+            {/* 显示语言默认隐藏，仅 ?debug=1 时展示 */}
+            {debug && <UserSettingsForm />}
           </Stack>
         </SectionCard>
       </TwoPaneSection>
@@ -390,8 +400,8 @@ export const SettingsModal = () => {
         </SectionCard>
       </TwoPaneSection>
 
-      {/* Multihost Section */}
-      {isMultihostSyncEnabled && (
+      {/* Multihost Section：身份与共享 / Pairing Tokens / 已授权实例 / 已知主机，默认隐藏，仅 ?debug=1 时展示 */}
+      {isMultihostSyncEnabled && debug && (
         <TwoPaneSection id="multihost">
           <SectionCard
             icon={<FiGlobe size={16} />}
