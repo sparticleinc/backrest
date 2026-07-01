@@ -44,7 +44,6 @@ export const MainContentAreaTemplate = ({
         px={6}
         m={0}
         minH={280}
-        bg="bg.panel" // Using semantic token for generic background
         borderRadius="md"
         boxShadow="none" // Antd usually has no shadow on content bg, but Chakra Cards do. Keeping simple for now.
       >

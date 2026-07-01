@@ -1,5 +1,6 @@
-import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
+import { ChakraProvider } from "@chakra-ui/react";
 import { ThemeProvider } from "next-themes";
+import { system } from "./theme";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { useUserPreferences } from "../lib/userPreferences";
 import { Config } from "../../gen/ts/v1/config_pb";
@@ -39,7 +40,7 @@ export function AppProvider(props: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <ChakraProvider value={defaultSystem}>
+    <ChakraProvider value={system}>
       <ThemeProvider attribute="class" disableTransitionOnChange>
         <ConfigContext.Provider value={[config, setConfig]}>
           {props.children}

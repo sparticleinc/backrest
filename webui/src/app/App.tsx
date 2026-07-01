@@ -272,8 +272,9 @@ const PeerNavItem = ({
     pl={14}
     pr={2}
     py={1}
-    bg={active ? "bg.emphasized" : undefined}
-    _hover={{ bg: "bg.muted" }}
+    bg={active ? "brand.muted" : undefined}
+    color={active ? "brand.solid" : undefined}
+    _hover={{ bg: active ? "brand.muted" : "brand.subtle", color: "brand.solid" }}
     cursor="pointer"
     className="group"
     onClick={onClick}
@@ -281,7 +282,12 @@ const PeerNavItem = ({
     <Box flexShrink={0} mr={2}>
       {icon}
     </Box>
-    <Text color="fg.muted" fontSize="xs" flexShrink={0} mr={1}>
+    <Text
+      color={active ? "brand.solid" : "fg.muted"}
+      fontSize="xs"
+      flexShrink={0}
+      mr={1}
+    >
       {typeLabel}
     </Text>
     <Text fontSize="sm" flex="1" wordBreak="break-word">
@@ -335,7 +341,7 @@ const PeerInstanceSection = ({
         pr={2}
         py={1}
         cursor="pointer"
-        _hover={{ bg: "bg.muted" }}
+        _hover={{ bg: "brand.subtle", color: "brand.solid" }}
         onClick={() => setExpanded((prev) => !prev)}
       >
         <Box
@@ -451,8 +457,9 @@ const SidebarPlanItem = React.memo(
         pl={9}
         pr={2}
         py={1}
-        bg={active ? "bg.emphasized" : undefined}
-        _hover={{ bg: "bg.muted" }}
+        bg={active ? "brand.muted" : undefined}
+        color={active ? "brand.solid" : undefined}
+        _hover={{ bg: active ? "brand.muted" : "brand.subtle", color: "brand.solid" }}
         className="group"
       >
         <Box flexShrink={0} mr={2}>
@@ -525,8 +532,9 @@ const SidebarRepoItem = React.memo(
         pl={9}
         pr={2}
         py={1}
-        bg={active ? "bg.emphasized" : undefined}
-        _hover={{ bg: "bg.muted" }}
+        bg={active ? "brand.muted" : undefined}
+        color={active ? "brand.solid" : undefined}
+        _hover={{ bg: active ? "brand.muted" : "brand.subtle", color: "brand.solid" }}
         className="group"
       >
         <Box flexShrink={0} mr={2}>
@@ -550,7 +558,7 @@ const SidebarRepoItem = React.memo(
             {repo.originInstanceId && (
               <Text
                 fontSize="xs"
-                color="fg.muted"
+                color={active ? "brand.solid" : "fg.muted"}
                 overflow="hidden"
                 textOverflow="ellipsis"
                 whiteSpace="nowrap"
@@ -613,12 +621,35 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
       minW="300px"
       maxW="400px"
       bg="bg.panel"
-      borderRightWidth="1px"
-      borderColor="border"
+      boxShadow="panel"
+      position="relative"
+      zIndex={1}
       h="full"
       overflowY="auto"
       flexShrink={0}
     >
+      {/* BRAND / TITLE (left column top; drawer has its own header on mobile) */}
+      {!onClose && (
+        <Box
+          as="a"
+          cursor="pointer"
+          onClick={() => handleNav("/")}
+          px={4}
+          h="60px"
+          display="flex"
+          alignItems="center"
+          flexShrink={0}
+          position="sticky"
+          top={0}
+          bg="bg.panel"
+          zIndex={1}
+        >
+          <Text fontWeight="bold" fontSize="lg" whiteSpace="nowrap">
+            GBase Onprem Backup
+          </Text>
+        </Box>
+      )}
+
       <AccordionRoot
         multiple
         defaultValue={["plans", "repos", "authorized-clients"]}
@@ -631,8 +662,9 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
           onClick={() => handleNav("/")}
           px={4}
           py={2}
-          bg={isActive("/") ? "bg.muted" : undefined}
-          _hover={{ bg: "bg.muted" }}
+          bg={isActive("/") ? "brand.muted" : undefined}
+          color={isActive("/") ? "brand.solid" : undefined}
+          _hover={{ bg: isActive("/") ? "brand.muted" : "brand.subtle", color: "brand.solid" }}
           userSelect="none"
         >
           <Flex align="center" gap={2}>
@@ -643,7 +675,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
 
         {/* PLANS SECTION */}
         <AccordionItem value="plans">
-          <AccordionItemTrigger px={4} py={2} _hover={{ bg: "bg.muted" }}>
+          <AccordionItemTrigger px={4} py={2} _hover={{ bg: "brand.subtle", color: "brand.solid" }}>
             <Flex align="center" gap={2}>
               <FiCalendar />
               <Text fontWeight="medium">{m.app_menu_plans()}</Text>
@@ -655,7 +687,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
               size="sm"
               width="full"
               justifyContent="flex-start"
-              _hover={{ bg: "bg.muted" }}
+              _hover={{ bg: "brand.subtle", color: "brand.solid" }}
               onClick={async () => {
                 const { AddPlanModal } =
                   await import("../features/plans/AddPlanModal");
@@ -687,7 +719,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
 
         {/* REPOS SECTION */}
         <AccordionItem value="repos">
-          <AccordionItemTrigger px={4} py={2} _hover={{ bg: "bg.muted" }}>
+          <AccordionItemTrigger px={4} py={2} _hover={{ bg: "brand.subtle", color: "brand.solid" }}>
             <Flex align="center" gap={2}>
               <FiDatabase />
               <Text fontWeight="medium">{m.app_menu_repos()}</Text>
@@ -699,7 +731,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
               size="sm"
               width="full"
               justifyContent="flex-start"
-              _hover={{ bg: "bg.muted" }}
+              _hover={{ bg: "brand.subtle", color: "brand.solid" }}
               onClick={async () => {
                 const { AddRepoModal } =
                   await import("../features/repositories/AddRepoModal");
@@ -761,7 +793,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
         {/* REMOTE INSTANCES / AUTHORIZED CLIENTS */}
         {config.multihost?.authorizedClients?.length ? (
           <AccordionItem value="authorized-clients">
-            <AccordionItemTrigger px={4} py={2} _hover={{ bg: "bg.muted" }}>
+            <AccordionItemTrigger px={4} py={2} _hover={{ bg: "brand.subtle", color: "brand.solid" }}>
               <Flex align="center" gap={2}>
                 <FiServer />
                 <Text fontWeight="medium">{m.app_menu_remote_instances()}</Text>
@@ -856,17 +888,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
 
 const Sidebar = () => {
   return (
-    <Box
-      minW="300px"
-      maxW="400px"
-      bg="bg.panel"
-      borderRightWidth="1px"
-      borderColor="border"
-      h="full"
-      overflowY="auto"
-      flexShrink={0}
-      display={{ base: "none", lg: "block" }}
-    >
+    <Box h="full" flexShrink={0} display={{ base: "none", lg: "block" }}>
       <SidebarContent />
     </Box>
   );
@@ -877,62 +899,61 @@ export const App: React.FC = () => {
   const [config, setConfig] = useConfig();
 
   return (
-    <Flex direction="column" h="100vh">
-      {/* HEADER */}
-      <Flex
-        as="header"
-        align="center"
-        px={4}
-        h="60px"
-        bg="bg.panel"
-        color="fg"
-        borderBottomWidth="1px"
-        borderColor="border"
-        flexShrink={0}
-      >
-        <Box display={{ base: "block", lg: "none" }} mr={2}>
-          <MobileNavTrigger />
-        </Box>
-        <Box
-          as="a"
-          cursor="pointer"
-          onClick={() => navigate("/")}
-          mr={4}
-          fontWeight="bold"
-          fontSize="lg"
-          whiteSpace="nowrap"
+    <Flex h="100vh">
+      {/* LEFT COLUMN: SIDEBAR (brand title lives at its top) */}
+      <Sidebar />
+
+      {/* RIGHT COLUMN */}
+      <Flex direction="column" flex="1" overflow="hidden">
+        {/* TOP BAR — 透明底，露出画布，使左侧白色栏成为连续的一列 */}
+        <Flex
+          as="header"
+          align="center"
+          px={4}
+          h="60px"
+          color="fg"
+          flexShrink={0}
         >
-          GBase Onprem Backup
-        </Box>
-
-        <Flex ml="auto" align="center" gap={4}>
-          <Text
-            fontSize="xs"
-            color="fg.muted"
-            display={{ base: "none", lg: "block" }}
+          {/* Mobile-only: hamburger + brand (sidebar is hidden on mobile) */}
+          <Box display={{ base: "block", lg: "none" }} mr={2}>
+            <MobileNavTrigger />
+          </Box>
+          <Box
+            display={{ base: "block", lg: "none" }}
+            as="a"
+            cursor="pointer"
+            onClick={() => navigate("/")}
+            mr={4}
+            fontWeight="bold"
+            fontSize="lg"
+            whiteSpace="nowrap"
           >
-            {config && config.instance ? config.instance : undefined}
-          </Text>
-          <ColorModeButton />
-          {config && !config.auth?.disabled && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setAuthToken("");
-                window.location.reload();
-              }}
-            >
-              {m.app_logout()}
-            </Button>
-          )}
-        </Flex>
-      </Flex>
+            GBase Onprem Backup
+          </Box>
 
-      {/* MAIN LAYOUT */}
-      <Flex flex="1" overflow="hidden">
-        {/* SIDEBAR */}
-        <Sidebar />
+          <Flex ml="auto" align="center" gap={4}>
+            <Text
+              fontSize="xs"
+              color="fg.muted"
+              display={{ base: "none", lg: "block" }}
+            >
+              {config && config.instance ? config.instance : undefined}
+            </Text>
+            <ColorModeButton />
+            {config && !config.auth?.disabled && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setAuthToken("");
+                  window.location.reload();
+                }}
+              >
+                {m.app_logout()}
+              </Button>
+            )}
+          </Flex>
+        </Flex>
 
         {/* CONTENT AREA */}
         <Box flex="1" overflowY="auto" bg="bg.canvas">
@@ -1004,7 +1025,7 @@ const MobileNavTrigger = () => {
       onOpenChange={(e) => setOpen(e.open)}
     >
       <DrawerTrigger asChild>
-        <IconButton variant="ghost" size="sm" color="white" aria-label="Menu">
+        <IconButton variant="ghost" size="sm" aria-label="Menu">
           <FiMenu />
         </IconButton>
       </DrawerTrigger>

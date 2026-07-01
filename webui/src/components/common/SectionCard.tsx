@@ -24,20 +24,12 @@ export const SectionCard: React.FC<SectionCardProps> = ({
       ref={cardRef}
       data-section={id}
       bg="bg.panel"
-      borderWidth="1px"
-      borderColor="border"
-      borderRadius="md"
+      boxShadow="card"
+      borderRadius="lg"
       mb={4}
       scrollMarginTop="16px"
     >
-      <Flex
-        align="center"
-        gap={2.5}
-        px={5}
-        py={3.5}
-        borderBottomWidth="1px"
-        borderColor="border"
-      >
+      <Flex align="center" gap={2.5} px={5} py={3.5}>
         {icon && (
           <Box color="fg.muted" fontSize="md">
             {React.isValidElement(icon)

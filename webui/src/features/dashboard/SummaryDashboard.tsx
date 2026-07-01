@@ -324,7 +324,7 @@ const SummaryPanel = ({
   );
 
   return (
-    <Card.Root width="full">
+    <Card.Root width="full" variant="elevated" boxShadow="card">
       <Card.Header>
         <Card.Title>{summary.id}</Card.Title>
       </Card.Header>
@@ -446,7 +446,7 @@ const PeerStateTile = ({
   }, [peerState.peerKeyid, peerState.lastHeartbeatMillis, state[1]]);
 
   return (
-    <Card.Root key={peerState.peerKeyid} width="full">
+    <Card.Root key={peerState.peerKeyid} width="full" variant="elevated" boxShadow="card">
       <Card.Header>
         <Flex justify="space-between" align="center">
           <Card.Title>{peerState.peerInstanceId}</Card.Title>
