@@ -110,7 +110,7 @@ jobs:
       - attach_workspace:
           at: /tmp/workspace
       - run:
-          name: 合并多架构镜像到统一标签并打 latest
+          name: 合并多架构镜像到统一时间戳标签
           command: |
             echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
             BASE_TAG=$(cat /tmp/workspace/IMAGE_TAG)
@@ -119,7 +119,6 @@ jobs:
             echo "BASE_TAG=$BASE_TAG amd64=$AMD_DIGEST arm64=$ARM_DIGEST"
             docker buildx imagetools create \
               -t << parameters.repo >>:${BASE_TAG} \
-              -t << parameters.repo >>:latest \
               << parameters.repo >>@${AMD_DIGEST} \
               << parameters.repo >>@${ARM_DIGEST}
             docker buildx imagetools inspect << parameters.repo >>:${BASE_TAG}
