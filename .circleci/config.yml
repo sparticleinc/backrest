@@ -138,7 +138,7 @@ workflows:
       - docker-build-push-arch:
           name: docker-build-push-amd64
           repo: gptbasesparticle/backrest
-          dockerfile: Dockerfile.ci
+          dockerfile: Dockerfile
           arch: amd64
           resource-class: medium
           filters:
@@ -151,7 +151,7 @@ workflows:
       - docker-build-push-arch:
           name: docker-build-push-arm64
           repo: gptbasesparticle/backrest
-          dockerfile: Dockerfile.ci
+          dockerfile: Dockerfile
           arch: arm64
           resource-class: arm.medium
           filters:
