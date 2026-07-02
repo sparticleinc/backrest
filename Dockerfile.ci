@@ -41,13 +41,20 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
 # Stage 3: 运行镜像
 FROM alpine:latest
 LABEL org.opencontainers.image.source="https://github.com/garethgeorge/backrest"
-RUN apk --no-cache add tini ca-certificates curl bash rclone openssh tzdata docker-cli && \
+# 基础工具沿用官方 alpine 镜像；额外的 jq / rsync / docker-cli-compose 供部署侧的
+# 备份钩子脚本使用（jq 解析 JSON、rsync 同步文件、docker compose exec 复用宿主守护进程）。
+RUN apk --no-cache add \
+      tini ca-certificates curl bash rclone openssh tzdata \
+      docker-cli docker-cli-compose jq rsync && \
     rclone selfupdate --stable
 RUN mkdir -p /tmp
 COPY --from=build /out/backrest /backrest
 COPY --from=build /out/docker-entrypoint /docker-entrypoint
-# 拉取并安装 restic（在原生架构机器上构建，无需 QEMU 模拟）
+# 构建时就把 restic 装好（在原生架构机器上构建，无需 QEMU 模拟）。
+# 此 RUN 早于下面的 ENV，故 install-deps 走默认解析、下载所需版本到数据目录，再移到 /bin。
 RUN /backrest --install-deps-only && \
     mkdir -p /bin && mv /root/.local/share/backrest/restic /bin/restic
+# 显式指定 restic 路径，运行时直接使用该二进制、永不再触发下载安装。
+ENV BACKREST_RESTIC_COMMAND=/bin/restic
 ENTRYPOINT ["/sbin/tini", "--", "/docker-entrypoint"]
 CMD ["/backrest"]
