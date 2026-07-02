@@ -83,7 +83,9 @@ import {
 
 const repoDefaults = create(RepoSchema, {
   id: 'local-repo',
-  uri: '/userdata',
+  // 仓库落到专用卷 /repos（compose: ./backup-repository:/repos），与备份源 /userdata
+  // 隔离，避免把仓库套进备份源导致递归备份、体积膨胀，也满足数据/备份分离。
+  uri: '/repos',
   prunePolicy: {
     maxUnusedPercent: 10,
     schedule: {
@@ -141,7 +143,7 @@ const repoDefaults = create(RepoSchema, {
       onError: Hook_OnError.CANCEL,
       action: {
         case: "actionCommand",
-        value: { command: "bash /shells/backup/backup.sh" },
+        value: { command: "bash /onprem/shells/backup/backup.sh" },
       },
     },
   ],
