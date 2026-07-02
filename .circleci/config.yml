@@ -1,0 +1,173 @@
+version: 2.1
+
+# 参考 gbase-frontend-onprem 的 CircleCI 逻辑：
+#   原生分架构构建（amd64 / arm64 分别跑在各自原生机器，无需 QEMU 模拟）
+#   → 按 digest 推送（push-by-digest，不产生 -amd64/-arm64 中间标签）
+#   → 合并成单一多架构标签（manifest list）
+# 仅做 CI（构建 + 推送镜像到 Docker Hub），不含持续部署。
+#
+# 需要在 CircleCI 项目环境变量中配置：
+#   DOCKERHUB_USERNAME / DOCKERHUB_PASS —— Docker Hub 登录凭据（对 gptbasesparticle 有推送权限）
+
+jobs:
+  # 基础校验：前端类型检查 + Go 构建（所有分支）
+  check:
+    docker:
+      - image: cimg/go:1.26-node
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: 前端依赖安装与类型检查
+          command: |
+            corepack enable
+            corepack prepare pnpm@10 --activate
+            cd webui
+            pnpm install --frozen-lockfile
+            pnpm run check
+            pnpm run build
+      - run:
+          name: Go 构建
+          command: |
+            CGO_ENABLED=0 go build -tags tray ./cmd/backrest
+            CGO_ENABLED=0 go build ./cmd/docker-entrypoint
+
+  # 生成唯一入口的共享镜像标签（YYYYMMDDHHMMSS，Asia/Tokyo），持久化供各架构与合并 job 共享
+  prepare:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    working_directory: /tmp/workspace
+    steps:
+      - run:
+          name: 生成共享镜像标签
+          command: |
+            IMAGE_TAG=$(TZ='Asia/Tokyo' date +%Y%m%d%H%M%S)
+            mkdir -p /tmp/workspace
+            echo "$IMAGE_TAG" > /tmp/workspace/IMAGE_TAG
+            echo "Generated shared IMAGE_TAG: $IMAGE_TAG"
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - IMAGE_TAG
+
+  # 单架构：在原生架构机器上从源码构建并按 digest 推送
+  docker-build-push-arch:
+    machine:
+      image: ubuntu-2404:current
+      docker_layer_caching: true
+    resource_class: << parameters.resource-class >>
+    parameters:
+      repo:
+        type: string
+      dockerfile:
+        type: string
+      arch:
+        type: string
+      resource-class:
+        type: string
+    working_directory: /tmp/workspace
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: 登录 Docker Hub
+          command: |
+            echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+      - run:
+          name: 按 digest 构建并推送（不创建架构标签）
+          command: |
+            BACKREST_BUILD_VERSION=$(cat /tmp/workspace/IMAGE_TAG)
+            # 使用 buildx 的 container 驱动，支持 push-by-digest：
+            # 只把镜像内容按 digest 推到仓库，不生成任何 -amd64/-arm64 标签
+            docker buildx create --use --name multiarch >/dev/null 2>&1 || docker buildx use multiarch
+            docker buildx build \
+              -f << parameters.dockerfile >> \
+              --build-arg BACKREST_BUILD_VERSION="$BACKREST_BUILD_VERSION" \
+              --output "type=image,name=<< parameters.repo >>,push-by-digest=true,push=true" \
+              --metadata-file /tmp/metadata.json \
+              .
+            DIGEST=$(jq -r '."containerimage.digest"' /tmp/metadata.json)
+            echo "本架构镜像 digest: $DIGEST"
+            mkdir -p /tmp/workspace/digests
+            echo "$DIGEST" > /tmp/workspace/digests/<< parameters.arch >>
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - digests
+
+  # 多架构清单合并：用两架构 digest 合并到统一标签（拉取时按运行架构自动选择）
+  docker-manifest-merge:
+    machine:
+      image: ubuntu-2404:current
+    resource_class: medium
+    parameters:
+      repo:
+        type: string
+    working_directory: /tmp/workspace
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: 合并多架构镜像到统一标签并打 latest
+          command: |
+            echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            BASE_TAG=$(cat /tmp/workspace/IMAGE_TAG)
+            AMD_DIGEST=$(cat /tmp/workspace/digests/amd64)
+            ARM_DIGEST=$(cat /tmp/workspace/digests/arm64)
+            echo "BASE_TAG=$BASE_TAG amd64=$AMD_DIGEST arm64=$ARM_DIGEST"
+            docker buildx imagetools create \
+              -t << parameters.repo >>:${BASE_TAG} \
+              -t << parameters.repo >>:${CIRCLE_SHA1:0:7} \
+              -t << parameters.repo >>:latest \
+              << parameters.repo >>@${AMD_DIGEST} \
+              << parameters.repo >>@${ARM_DIGEST}
+            docker buildx imagetools inspect << parameters.repo >>:${BASE_TAG}
+
+workflows:
+  ci:
+    jobs:
+      - check
+      # 仅 main 分支构建并推送镜像
+      - prepare:
+          filters:
+            branches:
+              only:
+                - main
+      - docker-build-push-arch:
+          name: docker-build-push-amd64
+          repo: gptbasesparticle/backrest
+          dockerfile: Dockerfile.ci
+          arch: amd64
+          resource-class: medium
+          filters:
+            branches:
+              only:
+                - main
+          requires:
+            - check
+            - prepare
+      - docker-build-push-arch:
+          name: docker-build-push-arm64
+          repo: gptbasesparticle/backrest
+          dockerfile: Dockerfile.ci
+          arch: arm64
+          resource-class: arm.medium
+          filters:
+            branches:
+              only:
+                - main
+          requires:
+            - check
+            - prepare
+      - docker-manifest-merge:
+          name: docker-manifest-merge
+          repo: gptbasesparticle/backrest
+          filters:
+            branches:
+              only:
+                - main
+          requires:
+            - docker-build-push-amd64
+            - docker-build-push-arm64
