@@ -55,6 +55,7 @@ import {
 import { FormModal } from "../../components/common/FormModal";
 import { Field } from "../../components/ui/field";
 import { alerts } from "../../components/common/Alerts";
+import * as m from "../../paraglide/messages";
 
 const SnapshotBrowserContext = React.createContext<{
   snapshotId: string;
@@ -224,7 +225,7 @@ export const SnapshotBrowser = ({
         });
       });
     } catch (e: any) {
-      alerts.error("Failed to load snapshot files: " + e.message);
+      alerts.error(m.snapshot_browser_error_load_files() + e.message);
     } finally {
       setLoadingKeys((prev) => {
         const next = new Set(prev);
@@ -330,14 +331,14 @@ const FileNode = ({
         window.open(resp.value, "_blank");
       })
       .catch((e) => {
-        alerts.error("Failed to fetch download URL: " + e.message);
+        alerts.error(m.snapshot_browser_error_download_url() + e.message);
       });
   };
 
   const showInfo = () => {
     showModal(
       <FormModal
-        title={"Path Info for " + entry.path}
+        title={m.snapshot_browser_path_info_title() + entry.path}
         isOpen={true}
         onClose={() => showModal(null)}
         footer={null}
@@ -387,20 +388,20 @@ const FileNode = ({
             <MenuItem value="info" onClick={showInfo}>
               <FiInfo />
               {/* @ts-ignore */}
-              <MenuItemText>Info</MenuItemText>
+              <MenuItemText>{m.snapshot_browser_menu_info()}</MenuItemText>
             </MenuItem>
             {/* @ts-ignore */}
             <MenuItem value="restore" onClick={restore}>
               <FiRefreshCw />
               {/* @ts-ignore */}
-              <MenuItemText>Restore to path</MenuItemText>
+              <MenuItemText>{m.snapshot_browser_menu_restore()}</MenuItemText>
             </MenuItem>
             {snapshotOpId ? (
               // @ts-ignore
               <MenuItem value="download" onClick={doDownload}>
                 <FiDownload />
                 {/* @ts-ignore */}
-                <MenuItemText>Download</MenuItemText>
+                <MenuItemText>{m.snapshot_browser_menu_download()}</MenuItemText>
               </MenuItem>
             ) : null}
           </MenuContent>
@@ -459,46 +460,39 @@ const RestoreModal = ({
           target,
         }),
       );
-      alerts.success("Restore started successfully.");
+      alerts.success(m.snapshot_browser_restore_success());
       showModal(null);
     } catch (e: any) {
-      alerts.error("Failed to restore: " + e.message);
+      alerts.error(m.snapshot_browser_restore_error() + e.message);
     }
   };
 
   return (
     <FormModal
-      title={"Restore " + path}
+      title={m.snapshot_browser_restore_title() + path}
       isOpen={true}
       onClose={() => showModal(null)}
       footer={
         <>
           <Button variant="ghost" onClick={() => showModal(null)}>
-            Cancel
+            {m.button_cancel()}
           </Button>
           <ConfirmButton
             onClickAsync={handleOk}
-            confirmTitle="Confirm Restore?"
+            confirmTitle={m.snapshot_browser_restore_confirm()}
           >
-            Restore
+            {m.snapshot_browser_restore_button()}
           </ConfirmButton>
         </>
       }
     >
       <Stack gap={4}>
-        <Text>
-          If restoring to a specific path, ensure that the path does not already
-          exist or that you are comfortable overwriting the data at that
-          location.
-        </Text>
-        <Text>
-          You may set the path to an empty string to restore to your Downloads
-          folder.
-        </Text>
+        <Text>{m.snapshot_browser_restore_desc_1()}</Text>
+        <Text>{m.snapshot_browser_restore_desc_2()}</Text>
 
-        <Field label="Restore to path" errorText={error}>
+        <Field label={m.snapshot_browser_restore_field_label()} errorText={error}>
           <URIAutocomplete
-            placeholder="Restoring to Downloads"
+            placeholder={m.snapshot_browser_restore_placeholder()}
             value={target}
             onChange={(val: string) => setTarget(val || "")}
           />

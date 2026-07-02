@@ -7,6 +7,7 @@ import { backrestService } from "../../api/client";
 import { Button } from "../ui/button";
 import { Box, Spinner, Text, Center } from "@chakra-ui/react";
 import { create } from "@bufbuild/protobuf";
+import * as m from "../../paraglide/messages";
 
 // TODO: refactor this to use the provider pattern
 export const LogView = ({ logref }: { logref: string }) => {
@@ -53,7 +54,7 @@ export const LogView = ({ logref }: { logref: string }) => {
           e.name !== "AbortError" &&
           !e.message?.includes("signal is aborted without reason")
         ) {
-          setError(e.message || "Failed to fetch logs");
+          setError(e.message || m.log_view_error_fetch());
         }
       } finally {
         setLoading(false);

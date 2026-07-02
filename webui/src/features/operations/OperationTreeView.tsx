@@ -54,6 +54,7 @@ import {
 } from "../../../gen/ts/v1/operations_pb";
 import { alerts } from "../../components/common/Alerts";
 import { OperationListView } from "./OperationListView";
+import * as m from "../../paraglide/messages";
 import {
   ClearHistoryRequestSchema,
   ForgetRequestSchema,
@@ -145,7 +146,7 @@ export const OperationTreeView = ({
     });
 
     return syncStateFromRequest(logState, req, (err) => {
-      alerts.error("API error: " + err.message);
+      alerts.error(m.operation_tree_error_api() + err.message);
     }, () => {
       setLoading(false);
     });
@@ -167,9 +168,9 @@ export const OperationTreeView = ({
             <LuInfo />
           </EmptyState.Indicator>
           <VStack textAlign="center">
-            <EmptyState.Title>No operations found</EmptyState.Title>
+            <EmptyState.Title>{m.operation_tree_empty_title()}</EmptyState.Title>
             <EmptyState.Description>
-              There are no operations to display.
+              {m.operation_tree_empty_description()}
             </EmptyState.Description>
           </VStack>
         </EmptyState.Content>
@@ -549,7 +550,7 @@ const BackupView = ({ backup }: { backup?: FlowDisplayInfo }) => {
   if (!backup) {
     return (
       <EmptyState.Root>
-        <EmptyState.Title>Backup not found.</EmptyState.Title>
+        <EmptyState.Title>{m.operation_tree_backup_not_found()}</EmptyState.Title>
       </EmptyState.Root>
     );
   } else {
@@ -562,9 +563,9 @@ const BackupView = ({ backup }: { backup?: FlowDisplayInfo }) => {
             snapshotId: backup.snapshotID!,
           }),
         );
-        alerts.success("Snapshot forgotten.");
+        alerts.success(m.operation_tree_success_forgotten());
       } catch (e: any) {
-        alerts.error("Failed to forget snapshot: " + e);
+        alerts.error(m.operation_tree_error_forget() + e);
       }
     };
 
@@ -576,17 +577,17 @@ const BackupView = ({ backup }: { backup?: FlowDisplayInfo }) => {
       snapshotInFlow && snapshotInFlow.snapshotId ? (
         <ConfirmButton
           variant="ghost"
-          confirmTitle="Confirm forget?"
+          confirmTitle={m.operation_tree_confirm_forget()}
           confirmTimeout={2000}
           onClickAsync={doDeleteSnapshot}
           colorPalette="red"
         >
-          Forget (Destructive)
+          {m.operation_tree_button_forget()}
         </ConfirmButton>
       ) : (
         <ConfirmButton
           variant="ghost"
-          confirmTitle="Confirm clear?"
+          confirmTitle={m.operation_tree_confirm_clear()}
           onClickAsync={async () => {
             backrestService.clearHistory(
               create(ClearHistoryRequestSchema, {
@@ -597,7 +598,7 @@ const BackupView = ({ backup }: { backup?: FlowDisplayInfo }) => {
             );
           }}
         >
-          Delete Event
+          {m.operation_tree_button_delete_event()}
         </ConfirmButton>
       );
 
