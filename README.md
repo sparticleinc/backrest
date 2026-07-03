@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./webui/assets/logo.svg" width="400px">
-    <source media="(prefers-color-scheme: light)" srcset="./webui/assets/logo-black.svg" width="400px">
+    <source media="(prefers-color-scheme: light)" srcset="./webui/assets/logo.svg" width="400px">
     <img src="./webui/assets/logo.svg" width="400px">
   </picture>
 </p>
