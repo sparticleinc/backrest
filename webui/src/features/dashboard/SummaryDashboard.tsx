@@ -15,7 +15,7 @@ import {
   AccordionItemTrigger,
   AccordionItemContent,
 } from "../../components/ui/accordion";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useConfig } from "../../app/provider";
 import {
   SummaryDashboardResponse,
@@ -36,7 +36,6 @@ import {
 import { colorForStatus } from "../../api/flowDisplayAggregator";
 import { OperationStatus } from "../../../gen/ts/v1/operations_pb";
 import { isMobile } from "../../lib/browserUtil";
-import { useNavigate } from "react-router";
 import { toJsonString } from "@bufbuild/protobuf";
 import { ConfigSchema, Multihost } from "../../../gen/ts/v1/config_pb";
 import { useSyncStates } from "../../state/peerStates";
@@ -49,51 +48,40 @@ import { FiDatabase, FiServer } from "react-icons/fi";
 
 export const SummaryDashboard = () => {
   const [config] = useConfig();
-  const navigate = useNavigate();
 
   const [summaryData, setSummaryData] =
     useState<SummaryDashboardResponse | null>();
 
+  const fetchData = useCallback(async () => {
+    // check if the tab is in the foreground
+    if (document.hidden) {
+      return;
+    }
+
+    try {
+      const data = await backrestService.getSummaryDashboard({});
+      setSummaryData(data);
+    } catch (e: any) {
+      alerts.error(m.dashboard_error_fetch() + e);
+    }
+  }, []);
+
+  // Poll periodically and whenever the tab regains visibility.
   useEffect(() => {
-    // Fetch summary data
-    const fetchData = async () => {
-      // check if the tab is in the foreground
-      if (document.hidden) {
-        return;
-      }
-
-      try {
-        const data = await backrestService.getSummaryDashboard({});
-        setSummaryData(data);
-      } catch (e: any) {
-        alerts.error(m.dashboard_error_fetch() + e);
-      }
-    };
-
-    fetchData();
-
     document.addEventListener("visibilitychange", fetchData);
     const interval = setInterval(fetchData, 60000);
     return () => {
       document.removeEventListener("visibilitychange", fetchData);
       clearInterval(interval);
     };
-  }, []);
+  }, [fetchData]);
 
+  // Refetch when the config changes (e.g. a repo or plan was created or
+  // deleted) so the dashboard reflects the new state without waiting for
+  // the next poll.
   useEffect(() => {
-    if (!config) {
-      return;
-    }
-
-    if (
-      config.repos.length === 0 &&
-      config.plans.length === 0 &&
-      config.multihost?.knownHosts.length === 0 &&
-      config.multihost?.authorizedClients.length === 0
-    ) {
-      navigate("/getting-started");
-    }
-  }, [config]);
+    fetchData();
+  }, [config, fetchData]);
 
   if (!summaryData) {
     return (

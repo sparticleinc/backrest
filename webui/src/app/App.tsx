@@ -84,12 +84,6 @@ const SummaryDashboard = React.lazy(() =>
   })),
 );
 
-const GettingStartedGuide = React.lazy(() =>
-  import("../features/dashboard/GettingStartedGuide").then((m) => ({
-    default: m.GettingStartedGuide,
-  })),
-);
-
 const PlanView = React.lazy(() =>
   import("../features/plans/PlanView").then((m) => ({
     default: m.PlanView,
@@ -971,18 +965,6 @@ export const App: React.FC = () => {
                   element={
                     <MainContentAreaTemplate breadcrumbs={[]}>
                       <SummaryDashboard />
-                    </MainContentAreaTemplate>
-                  }
-                />
-                <Route
-                  path="/getting-started"
-                  element={
-                    <MainContentAreaTemplate
-                      breadcrumbs={[
-                        { title: m.app_breadcrumb_getting_started() },
-                      ]}
-                    >
-                      <GettingStartedGuide />
                     </MainContentAreaTemplate>
                   }
                 />
