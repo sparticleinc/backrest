@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import {
   FiCalendar,
   FiDatabase,
@@ -7,35 +7,24 @@ import {
   FiAlertTriangle,
   FiSettings,
   FiLoader,
-  FiRadio,
   FiServer,
   FiEdit2,
   FiMenu,
   FiHome,
   FiChevronRight,
-} from "react-icons/fi";
+} from 'react-icons/fi';
 
-import {
-  Box,
-  Flex,
-  Button,
-  Heading,
-  Text,
-  Spinner,
-  Separator,
-  IconButton,
-} from "@chakra-ui/react";
-import { Tooltip } from "../components/ui/tooltip";
-import { keyframes } from "@emotion/react";
+import { Box, Flex, Button, Text, Spinner, IconButton } from '@chakra-ui/react';
+import { Tooltip } from '../components/ui/tooltip';
+import { keyframes } from '@emotion/react';
 
 import {
   AccordionRoot,
   AccordionItem,
   AccordionItemTrigger,
   AccordionItemContent,
-} from "../components/ui/accordion";
+} from '../components/ui/accordion';
 import {
-  DrawerBackdrop,
   DrawerBody,
   DrawerCloseTrigger,
   DrawerContent,
@@ -43,35 +32,32 @@ import {
   DrawerRoot,
   DrawerTitle,
   DrawerTrigger,
-} from "../components/ui/drawer";
-import { Config, Multihost_Peer, Plan, Repo } from "../../gen/ts/v1/config_pb";
-import { alerts } from "../components/common/Alerts";
-import { useShowModal } from "../components/common/ModalManager";
-import { OperationStatus } from "../../gen/ts/v1/operations_pb";
-import { useResourceStatus } from "../api/resourceStatus";
-import { keyBy } from "../lib/util";
-import { Code } from "@connectrpc/connect";
-import { LoginModal } from "../features/auth/LoginModal";
-import { backrestService, syncStateService, setAuthToken } from "../api/client";
-import { useConfig } from "./provider";
-import { shouldShowSettings } from "../state/configutil";
-import { OpSelector, OpSelectorSchema } from "../../gen/ts/v1/service_pb";
-import { colorForStatus } from "../api/flowDisplayAggregator";
+} from '../components/ui/drawer';
+import { Config, Plan, Repo } from '../../gen/ts/v1/config_pb';
+import { alerts } from '../components/common/Alerts';
+import { useShowModal } from '../components/common/ModalManager';
+import { OperationStatus } from '../../gen/ts/v1/operations_pb';
+import { useResourceStatus } from '../api/resourceStatus';
+import { keyBy } from '../lib/util';
+import { Code } from '@connectrpc/connect';
+import { LoginModal } from '../features/auth/LoginModal';
+import { backrestService, syncStateService } from '../api/client';
+import { useConfig } from './provider';
+import { shouldShowSettings } from '../state/configutil';
+import { OpSelector, OpSelectorSchema } from '../../gen/ts/v1/service_pb';
+import { colorForStatus } from '../api/flowDisplayAggregator';
+import { Route, Routes, useNavigate, useParams, useLocation } from 'react-router-dom';
+import { MainContentAreaTemplate } from '../components/layout/MainContentArea';
+import { create } from '@bufbuild/protobuf';
 import {
-  Route,
-  Routes,
-  useNavigate,
-  useParams,
-  Link as RouterLink,
-  useLocation,
-} from "react-router-dom";
-import { MainContentAreaTemplate } from "../components/layout/MainContentArea";
-import { create } from "@bufbuild/protobuf";
-import { PeerState, PlanMetadata, RepoMetadata, SetRemoteClientConfigRequestSchema } from "../../gen/ts/v1sync/syncservice_pb";
-import { useSyncStates } from "../state/peerStates";
-import * as m from "../paraglide/messages";
-import { EmptyState } from "../components/ui/empty-state";
-import { ColorModeButton } from "../components/ui/color-mode";
+  PeerState,
+  PlanMetadata,
+  RepoMetadata,
+  SetRemoteClientConfigRequestSchema,
+} from '../../gen/ts/v1sync/syncservice_pb';
+import { useSyncStates } from '../state/peerStates';
+import * as m from '../paraglide/messages';
+import { EmptyState } from '../components/ui/empty-state';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -79,25 +65,25 @@ const spin = keyframes`
 `;
 
 const SummaryDashboard = React.lazy(() =>
-  import("../features/dashboard/SummaryDashboard").then((m) => ({
+  import('../features/dashboard/SummaryDashboard').then((m) => ({
     default: m.SummaryDashboard,
   })),
 );
 
 const PlanView = React.lazy(() =>
-  import("../features/plans/PlanView").then((m) => ({
+  import('../features/plans/PlanView').then((m) => ({
     default: m.PlanView,
   })),
 );
 
 const RepoView = React.lazy(() =>
-  import("../features/repositories/RepoView").then((m) => ({
+  import('../features/repositories/RepoView').then((m) => ({
     default: m.RepoView,
   })),
 );
 
 const SelectorView = React.lazy(() =>
-  import("../features/repositories/SelectorView").then((m) => ({
+  import('../features/repositories/SelectorView').then((m) => ({
     default: m.SelectorView,
   })),
 );
@@ -134,7 +120,7 @@ const RepoViewContainer = () => {
               borderColor="blue.200"
               fontSize="sm"
               color="blue.800"
-              _dark={{ bg: "blue.950", borderColor: "blue.800", color: "blue.200" }}
+              _dark={{ bg: 'blue.950', borderColor: 'blue.800', color: 'blue.200' }}
             >
               {m.app_remote_repo_banner_prefix()}
               <strong>{repo.originInstanceId}</strong>
@@ -144,7 +130,7 @@ const RepoViewContainer = () => {
           <RepoView repo={repo} />
         </>
       ) : (
-        <EmptyState title={m.app_repo_not_found({ repoId: repoId || "" })} />
+        <EmptyState title={m.app_repo_not_found({ repoId: repoId || '' })} />
       )}
     </MainContentAreaTemplate>
   );
@@ -155,9 +141,7 @@ const RemoteRepoViewContainer = () => {
   const peerStates = useSyncStates();
 
   // Peer state is used to find the right repo
-  const peerState = peerStates.find(
-    (state) => state.peerInstanceId === peerInstanceId,
-  );
+  const peerState = peerStates.find((state) => state.peerInstanceId === peerInstanceId);
   const peerRepo = (peerState?.knownRepos || []).find((r) => r.id === repoId);
 
   return (
@@ -179,7 +163,7 @@ const RemoteRepoViewContainer = () => {
           })}
         />
       ) : (
-        <EmptyState title={m.app_repo_not_found({ repoId: repoId || "" })} />
+        <EmptyState title={m.app_repo_not_found({ repoId: repoId || '' })} />
       )}
     </MainContentAreaTemplate>
   );
@@ -189,9 +173,7 @@ const RemotePlanViewContainer = () => {
   const { peerInstanceId, planId } = useParams();
   const peerStates = useSyncStates();
 
-  const peerState = peerStates.find(
-    (state) => state.peerInstanceId === peerInstanceId,
-  );
+  const peerState = peerStates.find((state) => state.peerInstanceId === peerInstanceId);
   const peerPlan = (peerState?.knownPlans || []).find((p) => p.id === planId);
 
   return (
@@ -200,7 +182,7 @@ const RemotePlanViewContainer = () => {
         { title: m.app_breadcrumb_peer() },
         { title: peerInstanceId || m.app_unknown_peer() },
         { title: m.app_breadcrumb_plan() },
-        { title: planId || "" },
+        { title: planId || '' },
       ]}
       key={`${peerInstanceId}-${planId}`}
     >
@@ -213,7 +195,7 @@ const RemotePlanViewContainer = () => {
           })}
         />
       ) : (
-        <EmptyState title={m.app_plan_not_found({ planId: planId || "" })} />
+        <EmptyState title={m.app_plan_not_found({ planId: planId || '' })} />
       )}
     </MainContentAreaTemplate>
   );
@@ -240,7 +222,7 @@ const PlanViewContainer = () => {
       {plan ? (
         <PlanView plan={plan} />
       ) : (
-        <EmptyState title={m.app_plan_not_found({ planId: planId || "" })} />
+        <EmptyState title={m.app_plan_not_found({ planId: planId || '' })} />
       )}
     </MainContentAreaTemplate>
   );
@@ -266,9 +248,9 @@ const PeerNavItem = ({
     pl={14}
     pr={2}
     py={1}
-    bg={active ? "brand.muted" : undefined}
-    color={active ? "brand.solid" : undefined}
-    _hover={{ bg: active ? "brand.muted" : "brand.subtle", color: "brand.solid" }}
+    bg={active ? 'brand.muted' : undefined}
+    color={active ? 'brand.solid' : undefined}
+    _hover={{ bg: active ? 'brand.muted' : 'brand.subtle', color: 'brand.solid' }}
     cursor="pointer"
     className="group"
     onClick={onClick}
@@ -276,23 +258,14 @@ const PeerNavItem = ({
     <Box flexShrink={0} mr={2}>
       {icon}
     </Box>
-    <Text
-      color={active ? "brand.solid" : "fg.muted"}
-      fontSize="xs"
-      flexShrink={0}
-      mr={1}
-    >
+    <Text color={active ? 'brand.solid' : 'fg.muted'} fontSize="xs" flexShrink={0} mr={1}>
       {typeLabel}
     </Text>
     <Text fontSize="sm" flex="1" wordBreak="break-word">
       {name}
     </Text>
     {onEdit && (
-      <Box
-        opacity={0}
-        _groupHover={{ opacity: 1 }}
-        transition="opacity 0.2s"
-      >
+      <Box opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.2s">
         <IconButton
           size="xs"
           variant="ghost"
@@ -319,7 +292,7 @@ const PeerInstanceSection = ({
 }: {
   peerState: PeerState;
   sel: OpSelector;
-  remoteConfig: PeerState["remoteConfig"];
+  remoteConfig: PeerState['remoteConfig'];
   isActive: (path: string) => boolean;
   handleNav: (path: string) => void;
   handleRemoteRepoEdit: (repo: Repo) => void;
@@ -335,11 +308,11 @@ const PeerInstanceSection = ({
         pr={2}
         py={1}
         cursor="pointer"
-        _hover={{ bg: "brand.subtle", color: "brand.solid" }}
+        _hover={{ bg: 'brand.subtle', color: 'brand.solid' }}
         onClick={() => setExpanded((prev) => !prev)}
       >
         <Box
-          transform={expanded ? "rotate(90deg)" : undefined}
+          transform={expanded ? 'rotate(90deg)' : undefined}
           transition="transform 0.2s"
           display="inline-flex"
           alignItems="center"
@@ -360,9 +333,7 @@ const PeerInstanceSection = ({
         <>
           {peerState.knownRepos.map((repo: RepoMetadata) => {
             const repoPath = `/peer/${peerState.peerInstanceId}/repo/${repo.id}`;
-            const editableRepo = remoteConfig?.repos?.find(
-              (r: Repo) => r.guid === repo.guid,
-            );
+            const editableRepo = remoteConfig?.repos?.find((r: Repo) => r.guid === repo.guid);
             return (
               <PeerNavItem
                 key={repo.guid}
@@ -378,20 +349,14 @@ const PeerInstanceSection = ({
                 name={repo.id}
                 active={isActive(repoPath)}
                 onClick={() => handleNav(repoPath)}
-                onEdit={
-                  editableRepo
-                    ? () => handleRemoteRepoEdit(editableRepo)
-                    : undefined
-                }
+                onEdit={editableRepo ? () => handleRemoteRepoEdit(editableRepo) : undefined}
               />
             );
           })}
 
           {peerState.knownPlans.map((planMeta: PlanMetadata) => {
             const planPath = `/peer/${peerState.peerInstanceId}/plan/${planMeta.id}`;
-            const editablePlan = remoteConfig?.plans?.find(
-              (p: Plan) => p.id === planMeta.id,
-            );
+            const editablePlan = remoteConfig?.plans?.find((p: Plan) => p.id === planMeta.id);
             return (
               <PeerNavItem
                 key={planMeta.id}
@@ -407,11 +372,7 @@ const PeerInstanceSection = ({
                 name={planMeta.id}
                 active={isActive(planPath)}
                 onClick={() => handleNav(planPath)}
-                onEdit={
-                  editablePlan
-                    ? () => handleRemotePlanEdit(editablePlan)
-                    : undefined
-                }
+                onEdit={editablePlan ? () => handleRemotePlanEdit(editablePlan) : undefined}
               />
             );
           })}
@@ -438,7 +399,7 @@ const SidebarPlanItem = React.memo(
     const sel = useMemo(
       () =>
         create(OpSelectorSchema, {
-          originalInstanceKeyid: "",
+          originalInstanceKeyid: '',
           planId: plan.id,
           repoGuid: repoGuid,
         }),
@@ -451,36 +412,22 @@ const SidebarPlanItem = React.memo(
         pl={9}
         pr={2}
         py={1}
-        bg={active ? "brand.muted" : undefined}
-        color={active ? "brand.solid" : undefined}
-        _hover={{ bg: active ? "brand.muted" : "brand.subtle", color: "brand.solid" }}
+        bg={active ? 'brand.muted' : undefined}
+        color={active ? 'brand.solid' : undefined}
+        _hover={{ bg: active ? 'brand.muted' : 'brand.subtle', color: 'brand.solid' }}
         className="group"
       >
         <Box flexShrink={0} mr={2}>
           <IconForResource selector={sel} />
         </Box>
         <Tooltip content={plan.id}>
-          <Box
-            flex="1"
-            minW="0"
-            cursor="pointer"
-            onClick={() => onNav(planPath)}
-            userSelect="none"
-          >
-            <Text
-              overflow="hidden"
-              textOverflow="ellipsis"
-              whiteSpace="nowrap"
-            >
+          <Box flex="1" minW="0" cursor="pointer" onClick={() => onNav(planPath)} userSelect="none">
+            <Text overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap">
               {plan.id}
             </Text>
           </Box>
         </Tooltip>
-        <Box
-          opacity={0}
-          _groupHover={{ opacity: 1 }}
-          transition="opacity 0.2s"
-        >
+        <Box opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.2s">
           <IconButton
             size="xs"
             variant="ghost"
@@ -526,33 +473,23 @@ const SidebarRepoItem = React.memo(
         pl={9}
         pr={2}
         py={1}
-        bg={active ? "brand.muted" : undefined}
-        color={active ? "brand.solid" : undefined}
-        _hover={{ bg: active ? "brand.muted" : "brand.subtle", color: "brand.solid" }}
+        bg={active ? 'brand.muted' : undefined}
+        color={active ? 'brand.solid' : undefined}
+        _hover={{ bg: active ? 'brand.muted' : 'brand.subtle', color: 'brand.solid' }}
         className="group"
       >
         <Box flexShrink={0} mr={2}>
           <IconForResource selector={sel} />
         </Box>
         <Tooltip content={repo.uri}>
-          <Box
-            flex="1"
-            minW="0"
-            cursor="pointer"
-            onClick={() => onNav(repoPath)}
-            userSelect="none"
-          >
-            <Text
-              overflow="hidden"
-              textOverflow="ellipsis"
-              whiteSpace="nowrap"
-            >
+          <Box flex="1" minW="0" cursor="pointer" onClick={() => onNav(repoPath)} userSelect="none">
+            <Text overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap">
               {repo.id}
             </Text>
             {repo.originInstanceId && (
               <Text
                 fontSize="xs"
-                color={active ? "brand.solid" : "fg.muted"}
+                color={active ? 'brand.solid' : 'fg.muted'}
                 overflow="hidden"
                 textOverflow="ellipsis"
                 whiteSpace="nowrap"
@@ -562,11 +499,7 @@ const SidebarRepoItem = React.memo(
             )}
           </Box>
         </Tooltip>
-        <Box
-          opacity={0}
-          _groupHover={{ opacity: 1 }}
-          transition="opacity 0.2s"
-        >
+        <Box opacity={0} _groupHover={{ opacity: 1 }} transition="opacity 0.2s">
           <IconButton
             size="xs"
             variant="ghost"
@@ -597,18 +530,17 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const reposById = useMemo(() => config ? keyBy(config.repos, (r) => r.id) : {}, [config?.repos]);
+  const reposById = useMemo(
+    () => (config ? keyBy(config.repos, (r) => r.id) : {}),
+    [config?.repos],
+  );
 
   // Replicate getSidenavItems functionality with Chakra components
   if (!config) return null;
 
   const configPlans = config.plans || [];
-  const localRepos = (config.repos || []).filter(
-    (r) => !r.originInstanceId,
-  );
-  const remoteRepos = (config.repos || []).filter(
-    (r) => !!r.originInstanceId,
-  );
+  const localRepos = (config.repos || []).filter((r) => !r.originInstanceId);
+  const remoteRepos = (config.repos || []).filter((r) => !!r.originInstanceId);
 
   return (
     <Box
@@ -627,7 +559,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
         <Box
           as="a"
           cursor="pointer"
-          onClick={() => handleNav("/")}
+          onClick={() => handleNav('/')}
           px={4}
           h="60px"
           display="flex"
@@ -646,19 +578,19 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
 
       <AccordionRoot
         multiple
-        defaultValue={["plans", "repos", "authorized-clients"]}
+        defaultValue={['plans', 'repos', 'authorized-clients']}
         variant="plain"
         lazyMount
       >
         {/* DASHBOARD */}
         <Box
           cursor="pointer"
-          onClick={() => handleNav("/")}
+          onClick={() => handleNav('/')}
           px={4}
           py={2}
-          bg={isActive("/") ? "brand.muted" : undefined}
-          color={isActive("/") ? "brand.solid" : undefined}
-          _hover={{ bg: isActive("/") ? "brand.muted" : "brand.subtle", color: "brand.solid" }}
+          bg={isActive('/') ? 'brand.muted' : undefined}
+          color={isActive('/') ? 'brand.solid' : undefined}
+          _hover={{ bg: isActive('/') ? 'brand.muted' : 'brand.subtle', color: 'brand.solid' }}
           userSelect="none"
         >
           <Flex align="center" gap={2}>
@@ -669,7 +601,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
 
         {/* PLANS SECTION */}
         <AccordionItem value="plans">
-          <AccordionItemTrigger px={4} py={2} _hover={{ bg: "brand.subtle", color: "brand.solid" }}>
+          <AccordionItemTrigger px={4} py={2} _hover={{ bg: 'brand.subtle', color: 'brand.solid' }}>
             <Flex align="center" gap={2}>
               <FiCalendar />
               <Text fontWeight="medium">{m.app_menu_plans()}</Text>
@@ -681,10 +613,9 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
               size="sm"
               width="full"
               justifyContent="flex-start"
-              _hover={{ bg: "brand.subtle", color: "brand.solid" }}
+              _hover={{ bg: 'brand.subtle', color: 'brand.solid' }}
               onClick={async () => {
-                const { AddPlanModal } =
-                  await import("../features/plans/AddPlanModal");
+                const { AddPlanModal } = await import('../features/plans/AddPlanModal');
                 showModal(<AddPlanModal template={null} />);
                 onClose?.();
               }}
@@ -701,8 +632,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
                 active={isActive(`/plan/${plan.id}`)}
                 onNav={handleNav}
                 onEdit={async (plan) => {
-                  const { AddPlanModal } =
-                    await import("../features/plans/AddPlanModal");
+                  const { AddPlanModal } = await import('../features/plans/AddPlanModal');
                   showModal(<AddPlanModal template={plan} />);
                   onClose?.();
                 }}
@@ -713,7 +643,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
 
         {/* REPOS SECTION */}
         <AccordionItem value="repos">
-          <AccordionItemTrigger px={4} py={2} _hover={{ bg: "brand.subtle", color: "brand.solid" }}>
+          <AccordionItemTrigger px={4} py={2} _hover={{ bg: 'brand.subtle', color: 'brand.solid' }}>
             <Flex align="center" gap={2}>
               <FiDatabase />
               <Text fontWeight="medium">{m.app_menu_repos()}</Text>
@@ -725,10 +655,9 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
               size="sm"
               width="full"
               justifyContent="flex-start"
-              _hover={{ bg: "brand.subtle", color: "brand.solid" }}
+              _hover={{ bg: 'brand.subtle', color: 'brand.solid' }}
               onClick={async () => {
-                const { AddRepoModal } =
-                  await import("../features/repositories/AddRepoModal");
+                const { AddRepoModal } = await import('../features/repositories/AddRepoModal');
                 showModal(<AddRepoModal template={null} />);
                 onClose?.();
               }}
@@ -745,8 +674,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
                 active={isActive(`/repo/${repo.id}`)}
                 onNav={handleNav}
                 onEdit={async (repo) => {
-                  const { AddRepoModal } =
-                    await import("../features/repositories/AddRepoModal");
+                  const { AddRepoModal } = await import('../features/repositories/AddRepoModal');
                   showModal(<AddRepoModal template={repo} />);
                   onClose?.();
                 }}
@@ -754,14 +682,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
             ))}
             {remoteRepos.length > 0 && (
               <>
-                <Text
-                  fontSize="xs"
-                  fontWeight="bold"
-                  color="fg.muted"
-                  pl={9}
-                  pt={2}
-                  pb={1}
-                >
+                <Text fontSize="xs" fontWeight="bold" color="fg.muted" pl={9} pt={2} pb={1}>
                   {m.label_remote()}
                 </Text>
                 {remoteRepos.map((repo) => (
@@ -773,7 +694,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
                     onNav={handleNav}
                     onEdit={async (repo) => {
                       const { AddRepoModal } =
-                        await import("../features/repositories/AddRepoModal");
+                        await import('../features/repositories/AddRepoModal');
                       showModal(<AddRepoModal template={repo} />);
                       onClose?.();
                     }}
@@ -787,7 +708,11 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
         {/* REMOTE INSTANCES / AUTHORIZED CLIENTS */}
         {config.multihost?.authorizedClients?.length ? (
           <AccordionItem value="authorized-clients">
-            <AccordionItemTrigger px={4} py={2} _hover={{ bg: "brand.subtle", color: "brand.solid" }}>
+            <AccordionItemTrigger
+              px={4}
+              py={2}
+              _hover={{ bg: 'brand.subtle', color: 'brand.solid' }}
+            >
               <Flex align="center" gap={2}>
                 <FiServer />
                 <Text fontWeight="medium">{m.app_menu_remote_instances()}</Text>
@@ -802,8 +727,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
                 const remoteConfig = peerState.remoteConfig;
 
                 const handleRemoteRepoEdit = async (repo: Repo) => {
-                  const { AddRepoModal } =
-                    await import("../features/repositories/AddRepoModal");
+                  const { AddRepoModal } = await import('../features/repositories/AddRepoModal');
                   showModal(
                     <AddRepoModal
                       template={repo}
@@ -822,8 +746,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
                 };
 
                 const handleRemotePlanEdit = async (plan: Plan) => {
-                  const { AddPlanModal } =
-                    await import("../features/plans/AddPlanModal");
+                  const { AddPlanModal } = await import('../features/plans/AddPlanModal');
                   showModal(
                     <AddPlanModal
                       template={plan}
@@ -866,8 +789,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
             width="full"
             justifyContent="flex-start"
             onClick={async () => {
-              const { SettingsModal } =
-                await import("../features/settings/SettingsModal");
+              const { SettingsModal } = await import('../features/settings/SettingsModal');
               showModal(<SettingsModal />);
               onClose?.();
             }}
@@ -882,7 +804,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
 
 const Sidebar = () => {
   return (
-    <Box h="full" flexShrink={0} display={{ base: "none", lg: "block" }}>
+    <Box h="full" flexShrink={0} display={{ base: 'none', lg: 'block' }}>
       <SidebarContent />
     </Box>
   );
@@ -900,23 +822,16 @@ export const App: React.FC = () => {
       {/* RIGHT COLUMN */}
       <Flex direction="column" flex="1" overflow="hidden">
         {/* TOP BAR — 透明底，露出画布，使左侧白色栏成为连续的一列 */}
-        <Flex
-          as="header"
-          align="center"
-          px={4}
-          h="60px"
-          color="fg"
-          flexShrink={0}
-        >
+        <Flex as="header" align="center" px={4} h="60px" color="fg" flexShrink={0}>
           {/* Mobile-only: hamburger + brand (sidebar is hidden on mobile) */}
-          <Box display={{ base: "block", lg: "none" }} mr={2}>
+          <Box display={{ base: 'block', lg: 'none' }} mr={2}>
             <MobileNavTrigger />
           </Box>
           <Box
-            display={{ base: "block", lg: "none" }}
+            display={{ base: 'block', lg: 'none' }}
             as="a"
             cursor="pointer"
-            onClick={() => navigate("/")}
+            onClick={() => navigate('/')}
             mr={4}
             fontWeight="bold"
             fontSize="lg"
@@ -924,28 +839,6 @@ export const App: React.FC = () => {
           >
             GBase Onprem Backup
           </Box>
-
-          <Flex ml="auto" align="center" gap={4}>
-            <Text
-              fontSize="xs"
-              color="fg.muted"
-              display={{ base: "none", lg: "block" }}
-            >
-              {config && config.instance ? config.instance : undefined}
-            </Text>
-            {config && !config.auth?.disabled && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setAuthToken("");
-                  window.location.reload();
-                }}
-              >
-                {m.app_logout()}
-              </Button>
-            )}
-          </Flex>
         </Flex>
 
         {/* CONTENT AREA */}
@@ -981,10 +874,7 @@ export const App: React.FC = () => {
                   path="/*"
                   element={
                     <MainContentAreaTemplate breadcrumbs={[]}>
-                      <EmptyState
-                        title="404"
-                        description={m.app_page_not_found()}
-                      />
+                      <EmptyState title="404" description={m.app_page_not_found()} />
                     </MainContentAreaTemplate>
                   }
                 />
@@ -1000,11 +890,7 @@ export const App: React.FC = () => {
 const MobileNavTrigger = () => {
   const [open, setOpen] = useState(false);
   return (
-    <DrawerRoot
-      placement="start"
-      open={open}
-      onOpenChange={(e) => setOpen(e.open)}
-    >
+    <DrawerRoot placement="start" open={open} onOpenChange={(e) => setOpen(e.open)}>
       <DrawerTrigger asChild>
         <IconButton variant="ghost" size="sm" aria-label={m.aria_menu()}>
           <FiMenu />
@@ -1023,11 +909,7 @@ const MobileNavTrigger = () => {
   );
 };
 
-const AuthenticationBoundary = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+const AuthenticationBoundary = ({ children }: { children: React.ReactNode }) => {
   const [config, setConfig] = useConfig();
   const showModal = useShowModal();
   const [isLoading, setIsLoading] = useState(true);
@@ -1035,11 +917,7 @@ const AuthenticationBoundary = ({
 
   useEffect(() => {
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(
-        () =>
-          reject(new Error(m.app_error_request_timeout())),
-        5000,
-      ),
+      setTimeout(() => reject(new Error(m.app_error_request_timeout())), 5000),
     );
 
     Promise.race([backrestService.getConfig({}), timeoutPromise])
@@ -1047,11 +925,9 @@ const AuthenticationBoundary = ({
       .then((config: Config) => {
         setConfig(config);
         if (shouldShowSettings(config)) {
-          import("../features/settings/SettingsModal").then(
-            ({ SettingsModal }) => {
-              showModal(<SettingsModal />);
-            },
-          );
+          import('../features/settings/SettingsModal').then(({ SettingsModal }) => {
+            showModal(<SettingsModal />);
+          });
         } else {
           showModal(null);
         }
@@ -1063,10 +939,7 @@ const AuthenticationBoundary = ({
         if (err.code === Code.Unauthenticated) {
           showModal(<LoginModal />);
           return;
-        } else if (
-          err.code !== Code.Unavailable &&
-          err.code !== Code.DeadlineExceeded
-        ) {
+        } else if (err.code !== Code.Unavailable && err.code !== Code.DeadlineExceeded) {
           setError(err.message);
           alerts.error(err.message, 0);
           return;
@@ -1087,14 +960,8 @@ const AuthenticationBoundary = ({
 
   if (error && !config) {
     return (
-      <EmptyState
-        title={m.app_error_load_config()}
-        description={error}
-        icon={<FiAlertTriangle />}
-      >
-        <Button onClick={() => window.location.reload()}>
-          {m.app_button_retry()}
-        </Button>
+      <EmptyState title={m.app_error_load_config()} description={error} icon={<FiAlertTriangle />}>
+        <Button onClick={() => window.location.reload()}>{m.app_button_retry()}</Button>
       </EmptyState>
     );
   }
@@ -1106,12 +973,10 @@ const AuthenticationBoundary = ({
   return <>{children}</>;
 };
 
-const IconForResource = React.memo(
-  ({ selector }: { selector: OpSelector }) => {
-    const status = useResourceStatus(selector);
-    return iconForStatus(status);
-  },
-);
+const IconForResource = React.memo(({ selector }: { selector: OpSelector }) => {
+  const status = useResourceStatus(selector);
+  return iconForStatus(status);
+});
 
 const iconForStatus = (status: OperationStatus) => {
   const color = colorForStatus(status);
