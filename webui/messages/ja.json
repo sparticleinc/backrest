@@ -241,6 +241,7 @@
   "add_repo_modal_field_repo_name_tooltip": "バックエンド UI でこのリポジトリを一意に識別する ID（例：s3-mybucket）。この値は作成後に変更できません。",
   "add_repo_modal_error_repo_name_required": "リポジトリ名を入力してください",
   "add_repo_modal_error_repo_exists": "リポジトリ名は既に存在します",
+  "add_repo_modal_error_repo_in_use": "削除できません：次のバックアッププランがこのリポジトリを使用しています。先に削除してください：{plans}",
   "add_repo_modal_field_uri": "リポジトリの URI",
   "add_repo_modal_field_uri_tooltip_title": "有効なリポジトリの URI は以下の通りです：",
   "add_repo_modal_field_uri_tooltip_local": "ローカルファイルシステムのパス名",

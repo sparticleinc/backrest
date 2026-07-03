@@ -176,6 +176,7 @@
   "add_repo_modal_field_repo_name_tooltip": "Backrest UI 中识别此备份仓库的唯一 ID (例如 s3-mybucket)。创建后不可更改。",
   "add_repo_modal_error_repo_name_required": "请输入备份仓库名称",
   "add_repo_modal_error_repo_exists": "备份仓库名称已存在",
+  "add_repo_modal_error_repo_in_use": "无法删除：以下备份计划仍在使用此仓库，请先删除它们：{plans}",
   "add_repo_modal_field_uri": "备份仓库 URI",
   "add_repo_modal_field_uri_tooltip_title": "可用的备份仓库 URI 包括:",
   "add_repo_modal_field_uri_tooltip_local": "本地文件系统路径",

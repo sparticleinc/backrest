@@ -491,6 +491,20 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
   const handleDestroy = async () => {
     setConfirmLoading(true);
     try {
+      // 备份计划引用仓库，后端校验不允许删除仍被计划引用的仓库。
+      // 提前给出可读提示，指明需要先删除哪些计划。
+      const dependentPlans = (config?.plans || [])
+        .filter((p) => p.repo === template!.id)
+        .map((p) => p.id);
+      if (dependentPlans.length > 0) {
+        alerts.error(
+          m.add_repo_modal_error_repo_in_use({
+            plans: dependentPlans.join(", "),
+          }),
+        );
+        return;
+      }
+
       setConfig(
         await backrestService.removeRepo(
           create(StringValueSchema, { value: template!.id }),

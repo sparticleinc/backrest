@@ -244,6 +244,7 @@
   "add_repo_modal_field_repo_name_tooltip": "Unique ID that identifies this repo in the backrest UI (e.g. s3-mybucket). This cannot be changed after creation.",
   "add_repo_modal_error_repo_name_required": "Please input repo name",
   "add_repo_modal_error_repo_exists": "Repo with name already exists",
+  "add_repo_modal_error_repo_in_use": "Cannot delete: the following backup plans still use this repo, delete them first: {plans}",
   "add_repo_modal_field_uri": "Repository URI",
   "add_repo_modal_field_uri_tooltip_title": "Valid Repo URIs are:",
   "add_repo_modal_field_uri_tooltip_local": "Local filesystem path",
