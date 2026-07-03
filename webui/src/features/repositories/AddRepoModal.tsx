@@ -125,7 +125,7 @@ const repoDefaults = create(RepoSchema, {
           weekly: 4,
           monthly: 6,
           yearly: 2,
-          keepLastN: 5, // 最新（数量）：无论时间，至少保留最近 5 个快照
+          keepLastN: 3, // 最新（数量）：无论时间，至少保留最近 3 个快照
         },
       },
     },

@@ -84,7 +84,7 @@ const planDefaults = create(PlanSchema, {
         weekly: 4,
         monthly: 6,
         yearly: 2,
-        keepLastN: 5,
+        keepLastN: 3,
       },
     },
   },
