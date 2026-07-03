@@ -933,7 +933,6 @@ export const App: React.FC = () => {
             >
               {config && config.instance ? config.instance : undefined}
             </Text>
-            <ColorModeButton />
             {config && !config.auth?.disabled && (
               <Button
                 variant="ghost"

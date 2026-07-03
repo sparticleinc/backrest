@@ -41,7 +41,7 @@ export function AppProvider(props: { children: React.ReactNode }) {
 
   return (
     <ChakraProvider value={system}>
-      <ThemeProvider attribute="class" disableTransitionOnChange>
+      <ThemeProvider attribute="class" disableTransitionOnChange forcedTheme='light'>
         <ConfigContext.Provider value={[config, setConfig]}>
           {props.children}
         </ConfigContext.Provider>
