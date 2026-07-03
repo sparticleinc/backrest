@@ -1,6 +1,7 @@
 import { DataList as ChakraDataList, IconButton } from "@chakra-ui/react";
 import { HiOutlineInformationCircle } from "react-icons/hi";
 import { Tooltip } from "./tooltip";
+import * as m from "../../paraglide/messages";
 import * as React from "react";
 
 export const DataListRoot = ChakraDataList.Root;
@@ -21,7 +22,7 @@ export const DataListItem = React.forwardRef<HTMLDivElement, ItemProps>(
           {label}
           {info && (
             <Tooltip content={info}>
-              <IconButton variant="ghost" aria-label="info" size="xs">
+              <IconButton variant="ghost" aria-label={m.aria_info()} size="xs">
                 <HiOutlineInformationCircle />
               </IconButton>
             </Tooltip>

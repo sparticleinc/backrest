@@ -3,6 +3,7 @@
 import type { IconButtonProps } from "@chakra-ui/react";
 import { ClientOnly, IconButton, Skeleton } from "@chakra-ui/react";
 import { ThemeProvider, useTheme } from "next-themes";
+import * as m from "../../paraglide/messages";
 import type { ThemeProviderProps } from "next-themes";
 import * as React from "react";
 import { LuMoon, LuSun } from "react-icons/lu";
@@ -44,7 +45,7 @@ export const ColorModeButton = React.forwardRef<
       <IconButton
         onClick={toggleColorMode}
         variant="ghost"
-        aria-label="Toggle color mode"
+        aria-label={m.aria_toggle_color_mode()}
         size="sm"
         ref={ref}
         {...props}

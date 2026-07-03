@@ -10,6 +10,7 @@ import {
   useControllableState,
 } from "@chakra-ui/react";
 import * as React from "react";
+import * as m from "../../paraglide/messages";
 import { LuEye, LuEyeOff } from "react-icons/lu";
 import { InputGroup } from "./input-group";
 
@@ -34,7 +35,7 @@ export const PasswordInput = React.forwardRef<
           {attach}
           <IconButton
             variant="ghost"
-            aria-label={visible ? "Hide password" : "Show password"}
+            aria-label={visible ? m.aria_hide_password() : m.aria_show_password()}
             onClick={() => {
               setVisible(!visible);
               inputRef.current?.focus();

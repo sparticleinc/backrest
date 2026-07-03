@@ -156,7 +156,7 @@ export const RepoView = ({
               <IconButton
                 variant="subtle"
                 colorPalette="blue"
-                aria-label="More actions"
+                aria-label={m.aria_more_actions()}
               >
                 <FiChevronDown />
               </IconButton>

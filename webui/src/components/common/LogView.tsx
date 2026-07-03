@@ -85,7 +85,8 @@ export const LogView = ({ logref }: { logref: string }) => {
     >
       {error && (
         <Text color="fg.error" mb={2} fontWeight="bold">
-          Error: {error}
+          {m.label_error_prefix()}
+          {error}
         </Text>
       )}
 
@@ -112,8 +113,10 @@ export const LogView = ({ logref }: { logref: string }) => {
             onClick={() => setLimit(limit * 10)}
             mt={2}
           >
-            Show {Math.min(limit * 9, lines.length - limit)} more lines out of{" "}
-            {lines.length} available...
+            {m.log_view_show_more({
+              count: Math.min(limit * 9, lines.length - limit),
+              total: lines.length,
+            })}
           </Button>
         </>
       ) : null}

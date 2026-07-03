@@ -475,7 +475,7 @@ const PeerStateTile = ({
           />
           {peerState.knownRepos.length > 0 && (
             <DataListItem
-              label="Shared Repos"
+              label={m.summary_shared_repos()}
               value={
                 <Flex gap={1} flexWrap="wrap">
                   {peerState.knownRepos.map((repo) => (
@@ -496,7 +496,7 @@ const PeerStateTile = ({
           )}
           {sharedRepoIds && sharedRepoIds.length > 0 && (
             <DataListItem
-              label="Shared Repos"
+              label={m.summary_shared_repos()}
               value={
                 <Flex gap={1} flexWrap="wrap">
                   {sharedRepoIds.map((repoId) => (

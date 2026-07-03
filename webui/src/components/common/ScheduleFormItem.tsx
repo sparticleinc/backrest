@@ -136,7 +136,7 @@ export const ScheduleFormItem = ({
                 try {
                   return schedule.cron
                     ? cronstrue.toString(schedule.cron)
-                    : "Standard cron syntax (e.g. 0 0 * * *)";
+                    : m.schedule_form_cron_syntax_hint();
                 } catch (e) {
                   return m.add_plan_modal_schedule_invalid_cron();
                 }

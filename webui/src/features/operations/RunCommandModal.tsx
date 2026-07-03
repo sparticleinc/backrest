@@ -40,7 +40,7 @@ export const RunCommandModal = ({ repo }: { repo: RepoProps }) => {
         }),
       );
     } catch (e: any) {
-      alerts.error("Command failed: " + e.message);
+      alerts.error(m.run_command_error() + e.message);
     } finally {
       setRunning(false);
     }
@@ -77,8 +77,7 @@ export const RunCommandModal = ({ repo }: { repo: RepoProps }) => {
 
         {running && command && (
           <Text color="gray.500" fontStyle="italic">
-            Warning: another command is already running. Wait for it to finish
-            before running another operation that requires the repo lock.
+            {m.run_command_warning_running()}
           </Text>
         )}
 

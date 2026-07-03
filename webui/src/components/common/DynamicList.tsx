@@ -127,7 +127,7 @@ const FlagAutocomplete = ({
         <ComboboxInput placeholder={placeholder} width="full" />
       </ComboboxControl>
       <ComboboxContent zIndex={2000}>
-        <ComboboxEmpty>No flags found</ComboboxEmpty>
+        <ComboboxEmpty>{m.dynamic_list_no_flags()}</ComboboxEmpty>
         {collection.items.map((item) => (
           <ComboboxItem key={item.value} item={item}>
             {item.label}
@@ -253,7 +253,7 @@ export const DynamicList = ({
                       size="sm"
                       variant="ghost"
                       onClick={() => handleRemove(index)}
-                      aria-label="Remove"
+                      aria-label={m.aria_remove()}
                     >
                       <Minus size={16} />
                     </IconButton>

@@ -198,9 +198,7 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
         formData.retention?.policyTimeBucketed &&
         !(formData.retention.policyTimeBucketed.keepLastN > 1)
       ) {
-        throw new Error(
-          "Your schedule runs more than once per hour; please specify a 'Latest (Count)' greater than 1 in Retention Policy.",
-        );
+        throw new Error(m.add_plan_modal_error_subhourly_retention());
       }
 
       const plan = fromJson(PlanSchema, formData, {
@@ -228,7 +226,8 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
 
       if (template) {
         const idx = configCopy.plans.findIndex((r) => r.id === template.id);
-        if (idx === -1) throw new Error("failed to update plan, not found");
+        if (idx === -1)
+          throw new Error(m.add_plan_modal_error_plan_update_not_found());
         configCopy.plans[idx] = plan;
       } else {
         configCopy.plans.push(plan);
@@ -368,7 +367,7 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
                 <SelectContent>
                   {localRepos.length > 0 && remoteRepos.length > 0 && (
                     <CText fontSize="xs" fontWeight="bold" color="fg.muted" px={2} py={1}>
-                      Local
+                      {m.label_local()}
                     </CText>
                   )}
                   {repoOptions.items.slice(0, localRepos.length).map((item: any) => (
@@ -378,7 +377,7 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
                   ))}
                   {remoteRepos.length > 0 && (
                     <CText fontSize="xs" fontWeight="bold" color="fg.muted" px={2} py={1} mt={1} borderTopWidth="1px" borderColor="border">
-                      Remote
+                      {m.label_remote()}
                     </CText>
                   )}
                   {repoOptions.items.slice(localRepos.length).map((item: any) => (
@@ -505,7 +504,7 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
         <SectionCard
           icon={<FiArchive size={16} />}
           title={m.add_plan_modal_retention_policy_label()}
-          description="How long to keep snapshots before forgetting them."
+          description={m.add_plan_modal_retention_policy_desc()}
         >
           {repoHasScheduledForget ? (
             <CText color="fg.muted" fontStyle="italic">

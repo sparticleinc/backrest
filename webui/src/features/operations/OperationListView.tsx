@@ -56,7 +56,7 @@ export const OperationListView = ({
     });
 
     return syncStateFromRequest(logState, req, (e) => {
-      alerts.error("Failed to fetch operations: " + e.message);
+      alerts.error(m.error_fetch_operations() + e.message);
     }, () => {
       setLoading(false);
     });

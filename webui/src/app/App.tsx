@@ -142,9 +142,9 @@ const RepoViewContainer = () => {
               color="blue.800"
               _dark={{ bg: "blue.950", borderColor: "blue.800", color: "blue.200" }}
             >
-              This is a remote repo from{" "}
-              <strong>{repo.originInstanceId}</strong>. Operation history only
-              includes backups run locally and may be incomplete.
+              {m.app_remote_repo_banner_prefix()}
+              <strong>{repo.originInstanceId}</strong>
+              {m.app_remote_repo_banner_suffix()}
             </Box>
           )}
           <RepoView repo={repo} />
@@ -380,7 +380,7 @@ const PeerInstanceSection = ({
                     })}
                   />
                 }
-                typeLabel="repo"
+                typeLabel={m.app_peer_nav_type_repo()}
                 name={repo.id}
                 active={isActive(repoPath)}
                 onClick={() => handleNav(repoPath)}
@@ -409,7 +409,7 @@ const PeerInstanceSection = ({
                     })}
                   />
                 }
-                typeLabel="plan"
+                typeLabel={m.app_peer_nav_type_plan()}
                 name={planMeta.id}
                 active={isActive(planPath)}
                 onClick={() => handleNav(planPath)}
@@ -768,7 +768,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
                   pt={2}
                   pb={1}
                 >
-                  Remote
+                  {m.label_remote()}
                 </Text>
                 {remoteRepos.map((repo) => (
                   <SidebarRepoItem
@@ -820,7 +820,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
                             repos: [updatedRepo],
                           }),
                         );
-                        alerts.success("Remote repo updated");
+                        alerts.success(m.app_remote_repo_updated());
                       }}
                     />,
                   );
@@ -840,7 +840,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
                             plans: [updatedPlan],
                           }),
                         );
-                        alerts.success("Remote plan updated");
+                        alerts.success(m.app_remote_plan_updated());
                       }}
                     />,
                   );
@@ -1025,7 +1025,7 @@ const MobileNavTrigger = () => {
       onOpenChange={(e) => setOpen(e.open)}
     >
       <DrawerTrigger asChild>
-        <IconButton variant="ghost" size="sm" aria-label="Menu">
+        <IconButton variant="ghost" size="sm" aria-label={m.aria_menu()}>
           <FiMenu />
         </IconButton>
       </DrawerTrigger>
@@ -1056,7 +1056,7 @@ const AuthenticationBoundary = ({
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(
         () =>
-          reject(new Error("Request timed out, backend may be unavailable")),
+          reject(new Error(m.app_error_request_timeout())),
         5000,
       ),
     );
@@ -1107,11 +1107,13 @@ const AuthenticationBoundary = ({
   if (error && !config) {
     return (
       <EmptyState
-        title="Failed to load configuration"
+        title={m.app_error_load_config()}
         description={error}
         icon={<FiAlertTriangle />}
       >
-        <Button onClick={() => window.location.reload()}>Retry</Button>
+        <Button onClick={() => window.location.reload()}>
+          {m.app_button_retry()}
+        </Button>
       </EmptyState>
     );
   }

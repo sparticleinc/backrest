@@ -8,6 +8,7 @@ import {
   SelectHiddenSelect,
 } from "../ui/select";
 import { Box, Text, createListCollection } from "@chakra-ui/react";
+import * as m from "../../paraglide/messages";
 
 export interface EnumOption<T extends string> {
   value: T;
@@ -29,7 +30,7 @@ export const EnumSelector = <T extends string>({
   onChange,
   options,
   multiSelect = false,
-  placeholder = "Select...",
+  placeholder = m.enum_selector_placeholder(),
   size = "sm",
 }: EnumSelectorProps<T>) => {
   const collection = createListCollection({

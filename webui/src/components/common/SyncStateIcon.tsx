@@ -14,6 +14,7 @@ import {
 } from "react-icons/fi";
 import { Box } from "@chakra-ui/react";
 import { Tooltip } from "../ui/tooltip";
+import * as m from "../../paraglide/messages";
 
 export const PeerStateConnectionStatusIcon = ({
   peerState,
@@ -98,29 +99,29 @@ export const PeerStateConnectionStatusIcon = ({
 
     switch (peerState.state) {
       case ConnectionState.CONNECTED:
-        statusText = "Connected";
+        statusText = m.sync_state_connected();
         break;
       case ConnectionState.PENDING:
-        statusText = "Connecting...";
+        statusText = m.sync_state_connecting();
         break;
       case ConnectionState.RETRY_WAIT:
-        statusText = "Retrying connection";
+        statusText = m.sync_state_retrying();
         break;
       case ConnectionState.DISCONNECTED:
-        statusText = "Disconnected";
+        statusText = m.sync_state_disconnected();
         break;
       case ConnectionState.ERROR_AUTH:
-        statusText = "Authentication error";
+        statusText = m.sync_state_error_auth();
         break;
       case ConnectionState.ERROR_PROTOCOL:
-        statusText = "Protocol error";
+        statusText = m.sync_state_error_protocol();
         break;
       case ConnectionState.ERROR_INTERNAL:
-        statusText = "Internal error";
+        statusText = m.sync_state_error_internal();
         break;
       case ConnectionState.UNKNOWN:
       default:
-        statusText = "Unknown status";
+        statusText = m.sync_state_unknown();
         break;
     }
 
