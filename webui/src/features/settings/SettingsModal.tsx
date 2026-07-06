@@ -46,7 +46,6 @@ import {
   SelectValueText,
 } from "../../components/ui/select";
 import { useConfig } from "../../app/provider";
-import { useUserPreferences } from "../../lib/userPreferences";
 import { useDebug } from "../../lib/debug";
 import {
   TwoPaneModal,
@@ -309,9 +308,6 @@ export const SettingsModal = () => {
                 placeholder={m.settings_field_instance_id_placeholder()}
               />
             </Field>
-
-            {/* 显示语言默认隐藏，仅 ?debug=1 时展示 */}
-            {debug && <UserSettingsForm />}
           </Stack>
         </SectionCard>
       </TwoPaneSection>
@@ -1142,45 +1138,3 @@ const Alert = ({ status, children }: any) => (
     {children}
   </Box>
 );
-
-const languageNames: Record<string, string> = {
-  en: "English",
-  zh: "中文",
-  ja: "日本語",
-};
-
-const UserSettingsForm = () => {
-  const { preferences, updatePreference, availableLanguages } =
-    useUserPreferences();
-
-  const languageOptions = createListCollection({
-    items: availableLanguages.map((tag: string) => ({
-      label: languageNames[tag] || tag,
-      value: tag,
-    })),
-  });
-
-  return (
-    <Field label={m.settings_field_language()}>
-      <SelectRoot
-        collection={languageOptions}
-        value={[preferences.language]}
-        onValueChange={(e: any) => updatePreference("language", e.value[0])}
-      >
-        {/* @ts-ignore */}
-        <SelectTrigger>
-          {/* @ts-ignore */}
-          <SelectValueText placeholder={m.settings_select_language_placeholder()} />
-        </SelectTrigger>
-        {/* @ts-ignore */}
-        <SelectContent zIndex={2000}>
-          {languageOptions.items.map((option: any) => (
-            <SelectItem item={option} key={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </SelectRoot>
-    </Field>
-  );
-};

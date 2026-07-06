@@ -31,7 +31,10 @@ export const useUserPreferences = () => {
     });
 
     if (key === "language") {
-      setLocale(value as string, { reload: false });
+      // reload:true 让整页重新渲染，切换后立即全局生效。
+      // paraglide 的 m.xxx() 消息在渲染时才读 locale、且非响应式，
+      // 不刷新的话除本组件外的文案不会更新。
+      setLocale(value as string, { reload: true });
     }
   };
 

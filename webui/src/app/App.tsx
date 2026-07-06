@@ -58,6 +58,7 @@ import {
 import { useSyncStates } from '../state/peerStates';
 import * as m from '../paraglide/messages';
 import { EmptyState } from '../components/ui/empty-state';
+import { LanguageSwitcher } from '../components/common/LanguageSwitcher';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -551,7 +552,8 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
       position="relative"
       zIndex={1}
       h="full"
-      overflowY="auto"
+      display="flex"
+      flexDirection="column"
       flexShrink={0}
     >
       {/* BRAND / TITLE (left column top; drawer has its own header on mobile) */}
@@ -576,6 +578,8 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
         </Box>
       )}
 
+      {/* SCROLLABLE NAV AREA (grows to fill; footer stays pinned below) */}
+      <Box flex="1" overflowY="auto" minH={0}>
       <AccordionRoot
         multiple
         defaultValue={['plans', 'repos', 'authorized-clients']}
@@ -798,6 +802,12 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
           </Button>
         </Box>
       </AccordionRoot>
+      </Box>
+
+      {/* LANGUAGE SWITCHER：钉在侧栏左下角，切换会刷新整页 */}
+      <Box flexShrink={0} px={4} py={3} bg="bg.panel">
+        <LanguageSwitcher />
+      </Box>
     </Box>
   );
 };
