@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
       //   // brotliSize: true,
       // }) as PluginOption,
     ],
-    base: './',
+    base: '/backup/',
     build: {
       outDir: 'dist',
       target: 'esnext',

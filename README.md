@@ -230,9 +230,7 @@ npm install -g @bufbuild/protoc-gen-es
 **1. 先启动前端**（Vite 开发服务器，地址 `http://localhost:5173`）：
 
 ```sh
-cd webui
-pnpm i           # 仅首次需要
-pnpm start       # 将 /v1 及 API 请求代理到 http://localhost:9898
+cd webui && pnpm i && pnpm start  
 ```
 
 **2. 再运行后端**（在 `127.0.0.1:9898` 上提供 API）：
