@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 	"sync"
@@ -20,6 +21,30 @@ import (
 
 // ErrNoPermission indicates the token is valid but the user lacks the required authority codes.
 var ErrNoPermission = errors.New("missing COMPANY_OWNER or COMPANY_MANAGER authority")
+
+// GBaseTokenCookie is the cookie shared with the GBase Onprem host page;
+// backrest is embedded under the same origin so the browser sends it
+// automatically with every request.
+const GBaseTokenCookie = "LOCAL_MY_GPT_TOKEN"
+
+// gbaseTokenFromCookie extracts the bearer token from the GBase cookie,
+// normalizing URL-encoding, surrounding quotes and a "Bearer " prefix.
+// Returns "" if the cookie is absent or empty.
+func gbaseTokenFromCookie(r *http.Request) string {
+	cookie, err := r.Cookie(GBaseTokenCookie)
+	if err != nil {
+		return ""
+	}
+	raw := cookie.Value
+	if decoded, err := url.QueryUnescape(raw); err == nil {
+		raw = decoded
+	}
+	raw = strings.TrimSpace(strings.Trim(raw, `"`))
+	if len(raw) >= 7 && strings.EqualFold(raw[:7], "bearer ") {
+		raw = strings.TrimSpace(raw[7:])
+	}
+	return raw
+}
 
 var gbaseRequiredAuthorities = []string{"COMPANY_OWNER", "COMPANY_MANAGER"}
 

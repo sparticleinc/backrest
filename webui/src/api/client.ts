@@ -8,8 +8,9 @@ import { backendUrl } from "../state/buildcfg";
 
 const tokenKey = "backrest-ui-authToken";
 // Cookie shared with the GBase Onprem host page (backrest is embedded under
-// /backup on the same origin, so cookies are shared). When present it takes
-// priority over backrest's own login token.
+// /backup on the same origin). The browser sends it automatically with every
+// request, so it is never attached manually; the backend reads it directly.
+// It is only inspected here to detect whether we run embedded in GBase.
 const gbaseTokenCookie = "LOCAL_MY_GPT_TOKEN";
 
 export const setAuthToken = (token: string) => {
@@ -21,18 +22,7 @@ export const getGBaseToken = (): string | null => {
     .split("; ")
     .find((c) => c.startsWith(gbaseTokenCookie + "="));
   if (!entry) return null;
-  let raw = entry.slice(gbaseTokenCookie.length + 1);
-  try {
-    raw = decodeURIComponent(raw);
-  } catch {
-    // Not URL-encoded; use the raw value.
-  }
-  // The host page may store the token with a "Bearer " prefix (and possibly
-  // JSON-quoted); normalize to the bare token.
-  const token = raw
-    .replace(/^"+|"+$/g, "")
-    .replace(/^Bearer\s+/i, "")
-    .trim();
+  const token = entry.slice(gbaseTokenCookie.length + 1);
   return token !== "" ? token : null;
 };
 
@@ -41,11 +31,13 @@ const fetch = (
   init?: RequestInit,
 ): Promise<Response> => {
   const headers = new Headers(init?.headers);
-  let token = getGBaseToken() || localStorage.getItem(tokenKey);
+  let token = localStorage.getItem(tokenKey);
   if (token && token !== "") {
     headers.set("Authorization", "Bearer " + token);
   }
-  init = { ...init, headers };
+  // Include cookies even for cross-origin requests so the GBase token cookie
+  // reaches the backend in local development (vite dev server -> backend).
+  init = { ...init, headers, credentials: "include" };
   return window.fetch(input, init);
 };
 

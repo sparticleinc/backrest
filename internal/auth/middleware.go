@@ -27,9 +27,14 @@ func RequireAuthentication(h http.Handler, auth *Authenticator) http.Handler {
 				h.ServeHTTP(w, r)
 				return
 			}
-			token, err := ParseBearerToken(r.Header.Get("Authorization"))
-			if err != nil {
-				http.Error(w, "Unauthorized (No Authorization Header)", http.StatusUnauthorized)
+			// The browser sends the GBase cookie automatically; fall back to
+			// the Authorization header for non-browser clients.
+			token := gbaseTokenFromCookie(r)
+			if token == "" {
+				token, _ = ParseBearerToken(r.Header.Get("Authorization"))
+			}
+			if token == "" {
+				http.Error(w, "Unauthorized (No Token)", http.StatusUnauthorized)
 				return
 			}
 			user, err := auth.gbase.VerifyToken(r.Context(), token)

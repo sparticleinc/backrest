@@ -75,6 +75,31 @@ func TestGBaseVerifyTokenRejectsBadToken(t *testing.T) {
 	}
 }
 
+func TestGBaseTokenFromCookie(t *testing.T) {
+	cases := []struct {
+		name   string
+		cookie string
+		want   string
+	}{
+		{"bare token", "abc.def.ghi", "abc.def.ghi"},
+		{"bearer prefix", "Bearer abc.def.ghi", "abc.def.ghi"},
+		{"url encoded bearer", "Bearer%20abc.def.ghi", "abc.def.ghi"},
+		{"quoted", `"abc.def.ghi"`, "abc.def.ghi"},
+		{"empty", "", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodGet, "/", nil)
+			if tc.cookie != "" {
+				r.AddCookie(&http.Cookie{Name: GBaseTokenCookie, Value: tc.cookie})
+			}
+			if got := gbaseTokenFromCookie(r); got != tc.want {
+				t.Errorf("got %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestGBaseVerifyTokenCachesResults(t *testing.T) {
 	hits := 0
 	server := newGBaseTestServer(t, []string{"COMPANY_OWNER"}, &hits)
