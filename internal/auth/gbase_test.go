@@ -12,7 +12,7 @@ import (
 func newGBaseTestServer(t *testing.T, authorityCodes []string, hits *int) *httptest.Server {
 	t.Helper()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/ogs/user/my/company/default", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/user/my/company/default", func(w http.ResponseWriter, r *http.Request) {
 		*hits++
 		if r.Header.Get("Authorization") != "Bearer good-token" {
 			http.Error(w, `{"success":false}`, http.StatusUnauthorized)
@@ -20,7 +20,7 @@ func newGBaseTestServer(t *testing.T, authorityCodes []string, hits *int) *httpt
 		}
 		fmt.Fprint(w, `{"success":true,"company":{"id":"12345"}}`)
 	})
-	mux.HandleFunc("/api/ogs/user/company/12345/my/authority/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/user/company/12345/my/authority/", func(w http.ResponseWriter, r *http.Request) {
 		codes := "["
 		for i, c := range authorityCodes {
 			if i > 0 {

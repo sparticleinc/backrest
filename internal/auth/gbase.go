@@ -91,7 +91,7 @@ func (g *GBaseAuthenticator) verifyRemote(ctx context.Context, token string) (*v
 			ID string `json:"id"`
 		} `json:"company"`
 	}
-	if err := g.getJSON(ctx, token, "/api/ogs/user/my/company/default", &companyResp); err != nil {
+	if err := g.getJSON(ctx, token, "/user/my/company/default", &companyResp); err != nil {
 		return nil, fmt.Errorf("fetch default company: %w", err)
 	}
 	if !companyResp.Success || companyResp.Company.ID == "" {
@@ -102,7 +102,7 @@ func (g *GBaseAuthenticator) verifyRemote(ctx context.Context, token string) (*v
 		Success        bool     `json:"success"`
 		AuthorityCodes []string `json:"authorityCodes"`
 	}
-	if err := g.getJSON(ctx, token, "/api/ogs/user/company/"+companyResp.Company.ID+"/my/authority/", &authorityResp); err != nil {
+	if err := g.getJSON(ctx, token, "/user/company/"+companyResp.Company.ID+"/my/authority/", &authorityResp); err != nil {
 		return nil, fmt.Errorf("fetch authority codes: %w", err)
 	}
 	if !authorityResp.Success {

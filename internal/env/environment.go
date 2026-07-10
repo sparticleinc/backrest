@@ -26,7 +26,7 @@ var flagDataDir = flag.String("data-dir", "", "path to data directory, defaults 
 var flagConfigPath = flag.String("config-file", "", "path to config file, defaults to XDG_CONFIG_HOME/backrest/config.json. Overrides BACKREST_CONFIG environment variable.")
 var flagBindAddress = flag.String("bind-address", "", "address to bind to, defaults to 127.0.0.1:9898. Use :9898 to listen on all interfaces. Overrides BACKREST_PORT environment variable.")
 var flagResticBinPath = flag.String("restic-cmd", "", "path to restic binary, defaults to a backrest managed version of restic. Overrides BACKREST_RESTIC_COMMAND environment variable.")
-var flagGBaseAuthURL = flag.String("gbase-auth-url", "", "base URL of the GBase Onprem service (e.g. https://onprem-dev.gbase.ai) used to validate bearer tokens. Enables GBase auth when set. Overrides BACKREST_GBASE_AUTH_URL environment variable.")
+var flagGBaseAuthURL = flag.String("gbase-auth-url", "", "base URL of the GBase Onprem user service (e.g. https://onprem-dev.gbase.ai/api/ogs) used to validate bearer tokens. Enables GBase auth when set. Overrides BACKREST_GBASE_AUTH_URL environment variable.")
 var flagMultihostHeartbeatInterval = flag.Duration("multihost-heartbeat-interval", 600*time.Second, "interval in seconds to send heartbeat messages to other hosts in a multihost setup. Defaults to 600 seconds, but can be set lower to keep connections alive with reverse proxies that aggressively timeout idle connections.")
 
 // ConfigFilePath

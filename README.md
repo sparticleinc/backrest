@@ -244,7 +244,9 @@ go install github.com/air-verse/air@latest
 cd cmd/backrest
 export BACKREST_DATA=/tmp/backrest-dev/data
 export BACKREST_CONFIG=/tmp/backrest-dev/config.json
-export BACKREST_GBASE_AUTH_URL="https://onprem-dev.gbase.ai/"
+# GBase 用户服务的 base URL（不含 /user/... 部分）。开发环境直连需带 /api/ogs 前缀；
+# 线上环境 /api/ogs 由 nginx 反代，按实际反代地址配置。
+export BACKREST_GBASE_AUTH_URL="https://onprem-dev.gbase.ai/api/ogs"
 air
 ```
 
