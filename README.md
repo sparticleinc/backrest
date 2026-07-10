@@ -241,7 +241,11 @@ go install github.com/air-verse/air@latest
 ```
 运行项目：
 ```sh
-cd cmd/backrest && BACKREST_DATA=/tmp/backrest-dev/data && BACKREST_CONFIG=/tmp/backrest-dev/config.json && air
+cd cmd/backrest
+export BACKREST_DATA=/tmp/backrest-dev/data
+export BACKREST_CONFIG=/tmp/backrest-dev/config.json
+export BACKREST_GBASE_AUTH_URL="https://onprem-dev.gbase.ai/"
+air
 ```
 
 

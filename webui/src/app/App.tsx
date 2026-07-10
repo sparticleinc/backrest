@@ -41,7 +41,7 @@ import { useResourceStatus } from '../api/resourceStatus';
 import { keyBy } from '../lib/util';
 import { Code } from '@connectrpc/connect';
 import { LoginModal } from '../features/auth/LoginModal';
-import { backrestService, syncStateService } from '../api/client';
+import { backrestService, syncStateService, getGBaseToken } from '../api/client';
 import { useConfig } from './provider';
 import { shouldShowSettings } from '../state/configutil';
 import { OpSelector, OpSelectorSchema } from '../../gen/ts/v1/service_pb';
@@ -924,6 +924,22 @@ const AuthenticationBoundary = ({ children }: { children: React.ReactNode }) => 
   const showModal = useShowModal();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // When set, counts down and then redirects to the origin root (the GBase
+  // Onprem host page) so the user can (re-)login there.
+  const [redirectSeconds, setRedirectSeconds] = useState<number | null>(null);
+  // Marks GBase auth failures so the error page shows the friendly message
+  // as its title instead of "failed to load config" + a raw HTTP error.
+  const [isAuthError, setIsAuthError] = useState(false);
+
+  useEffect(() => {
+    if (redirectSeconds === null) return;
+    if (redirectSeconds <= 0) {
+      window.location.href = window.location.origin + "/";
+      return;
+    }
+    const timer = setTimeout(() => setRedirectSeconds(redirectSeconds - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [redirectSeconds]);
 
   useEffect(() => {
     const timeoutPromise = new Promise((_, reject) =>
@@ -947,11 +963,29 @@ const AuthenticationBoundary = ({ children }: { children: React.ReactNode }) => 
         setIsLoading(false);
         const code = err.code;
         if (err.code === Code.Unauthenticated) {
+          // When embedded under GBase Onprem the token comes from the host
+          // page; backrest's own login modal can't fix a rejected token.
+          if (getGBaseToken()) {
+            const message = m.auth_session_expired();
+            setError(message);
+            setIsAuthError(true);
+            alerts.error(message, 0);
+            setRedirectSeconds(5);
+            return;
+          }
           showModal(<LoginModal />);
           return;
         } else if (err.code !== Code.Unavailable && err.code !== Code.DeadlineExceeded) {
-          setError(err.message);
-          alerts.error(err.message, 0);
+          // Insufficient GBase authority: show a friendly hint, no redirect —
+          // logging in again wouldn't change the user's permissions.
+          const isGBasePermissionDenied =
+            err.code === Code.PermissionDenied && !!getGBaseToken();
+          const message = isGBasePermissionDenied
+            ? m.auth_permission_denied()
+            : err.message;
+          setError(message);
+          setIsAuthError(isGBasePermissionDenied);
+          alerts.error(message, 0);
           return;
         }
 
@@ -970,8 +1004,19 @@ const AuthenticationBoundary = ({ children }: { children: React.ReactNode }) => 
 
   if (error && !config) {
     return (
-      <EmptyState title={m.app_error_load_config()} description={error} icon={<FiAlertTriangle />}>
-        <Button onClick={() => window.location.reload()}>{m.app_button_retry()}</Button>
+      <EmptyState
+        title={isAuthError ? error : m.app_error_load_config()}
+        description={isAuthError ? undefined : error}
+        icon={<FiAlertTriangle />}
+      >
+        {redirectSeconds !== null && (
+          <Text fontWeight="medium">
+            {m.auth_redirect_countdown({ seconds: redirectSeconds })}
+          </Text>
+        )}
+        {!isAuthError && (
+          <Button onClick={() => window.location.reload()}>{m.app_button_retry()}</Button>
+        )}
       </EmptyState>
     );
   }

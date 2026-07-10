@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"go.uber.org/zap"
@@ -18,6 +19,33 @@ const APIKeyContextKey contextKey = "api_key"
 
 func RequireAuthentication(h http.Handler, auth *Authenticator) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// When GBase auth is enabled it takes over all authentication,
+		// regardless of the local auth config.
+		if auth.gbase != nil {
+			// Pass OPTIONS through unauthenticated so CORS preflight succeeds.
+			if r.Method == http.MethodOptions {
+				h.ServeHTTP(w, r)
+				return
+			}
+			token, err := ParseBearerToken(r.Header.Get("Authorization"))
+			if err != nil {
+				http.Error(w, "Unauthorized (No Authorization Header)", http.StatusUnauthorized)
+				return
+			}
+			user, err := auth.gbase.VerifyToken(r.Context(), token)
+			if errors.Is(err, ErrNoPermission) {
+				http.Error(w, "Forbidden: "+ErrNoPermission.Error(), http.StatusForbidden)
+				return
+			} else if err != nil {
+				zap.S().Warnf("gbase auth blocked bad token: %v", err)
+				http.Error(w, "Unauthorized (Bad Token)", http.StatusUnauthorized)
+				return
+			}
+			ctx := context.WithValue(r.Context(), UserContextKey, user)
+			h.ServeHTTP(w, r.WithContext(ctx))
+			return
+		}
+
 		config, err := auth.config.Get()
 		if err != nil {
 			zap.S().Errorf("auth middleware failed to get config: %v", err)

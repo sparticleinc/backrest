@@ -15,6 +15,13 @@ import (
 type Authenticator struct {
 	config config.ConfigStore
 	key    []byte
+	gbase  *GBaseAuthenticator
+}
+
+// UseGBase delegates all request authentication to the GBase Onprem user
+// service; the local user/password and JWT flows are bypassed entirely.
+func (a *Authenticator) UseGBase(g *GBaseAuthenticator) {
+	a.gbase = g
 }
 
 func NewAuthenticator(key []byte, config config.ConfigStore) *Authenticator {

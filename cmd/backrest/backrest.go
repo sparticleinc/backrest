@@ -215,7 +215,12 @@ func newAuthenticator(configMgr *config.ConfigManager) *auth.Authenticator {
 	} else {
 		zap.L().Debug("loading auth secret from file")
 	}
-	return auth.NewAuthenticator(data, configMgr)
+	authenticator := auth.NewAuthenticator(data, configMgr)
+	if gbaseURL := env.GBaseAuthURL(); gbaseURL != "" {
+		zap.L().Info("GBase Onprem auth enabled, bearer tokens will be validated remotely", zap.String("url", gbaseURL))
+		authenticator.UseGBase(auth.NewGBaseAuthenticator(gbaseURL))
+	}
+	return authenticator
 }
 
 func newServer(
