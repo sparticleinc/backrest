@@ -217,8 +217,12 @@ func newAuthenticator(configMgr *config.ConfigManager) *auth.Authenticator {
 	}
 	authenticator := auth.NewAuthenticator(data, configMgr)
 	if gbaseURL := env.GBaseAuthURL(); gbaseURL != "" {
-		zap.L().Info("GBase Onprem auth enabled, bearer tokens will be validated remotely", zap.String("url", gbaseURL))
-		authenticator.UseGBase(auth.NewGBaseAuthenticator(gbaseURL))
+		if version == "unknown" { // dev build, skip GBase auth for local development
+			zap.L().Info("dev build, GBase Onprem auth disabled")
+		} else {
+			zap.L().Info("GBase Onprem auth enabled, bearer tokens will be validated remotely", zap.String("url", gbaseURL))
+			authenticator.UseGBase(auth.NewGBaseAuthenticator(gbaseURL))
+		}
 	}
 	return authenticator
 }
