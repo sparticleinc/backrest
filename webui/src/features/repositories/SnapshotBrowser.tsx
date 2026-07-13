@@ -17,7 +17,7 @@ import {
   FiMoreHorizontal,
 } from "react-icons/fi";
 import { useShowModal } from "../../components/common/ModalManager";
-import { formatBytes, normalizeSnapshotId } from "../../lib/formatting";
+import { formatBytes } from "../../lib/formatting";
 import { URIAutocomplete } from "../../components/common/URIAutocomplete";
 import { backrestService } from "../../api/client";
 import { ConfirmButton } from "../../components/common/SpinButton";
@@ -427,11 +427,17 @@ const RestoreModal = ({
   const [error, setError] = useState<string | null>(null);
 
   const defaultPath = useMemo(() => {
-    if (path === pathSeparator) {
-      return "";
-    }
-    return path + "-backrest-restore-" + normalizeSnapshotId(snapshotId);
-  }, [path]);
+    const now = new Date();
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const timestamp =
+      now.getFullYear().toString() +
+      pad(now.getMonth() + 1) +
+      pad(now.getDate()) +
+      pad(now.getHours()) +
+      pad(now.getMinutes()) +
+      pad(now.getSeconds());
+    return "/restore/" + timestamp;
+  }, []);
 
   useEffect(() => {
     setTarget(defaultPath);
