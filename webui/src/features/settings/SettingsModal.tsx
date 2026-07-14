@@ -20,12 +20,10 @@ import {
   FiGlobe,
 } from "react-icons/fi";
 import { formatErrorAlert, alerts } from "../../components/common/Alerts";
-import { backrestService, authenticationService } from "../../api/client";
+import { backrestService } from "../../api/client";
 import { clone, create, fromJson, toJson } from "@bufbuild/protobuf";
 import {
-  AuthSchema,
   ConfigSchema,
-  UserSchema,
   MultihostSchema,
   Multihost_PeerSchema,
   Multihost_Permission_Type,
@@ -37,7 +35,6 @@ import { isMultihostSyncEnabled } from "../../state/buildcfg";
 import * as m from "../../paraglide/messages";
 import { Button } from "../../components/ui/button";
 import { Field } from "../../components/ui/field";
-import { PasswordInput } from "../../components/ui/password-input";
 import {
   SelectRoot,
   SelectTrigger,
@@ -53,7 +50,6 @@ import {
   type SectionDef,
 } from "../../components/common/TwoPaneModal";
 import { SectionCard } from "../../components/common/SectionCard";
-import { ToggleField } from "../../components/common/ToggleField";
 
 export const SettingsModal = () => {
   const [config, setConfig] = useConfig();
@@ -82,14 +78,6 @@ export const SettingsModal = () => {
     if (!config) return null;
     return {
       instance: config.instance || "gbase_onprem_backrest_server",
-      auth: {
-        disabled: config.auth?.disabled || false,
-        users:
-          config.auth?.users?.map((u: any) => ({
-            ...(toJson(UserSchema, u, { alwaysEmitImplicit: true }) as any),
-            isExisting: true,
-          })) || [],
-      },
       multihost: {
         identity: { keyid: config.multihost?.identity?.keyid || "" },
         knownHosts:
@@ -199,31 +187,11 @@ export const SettingsModal = () => {
     try {
       const workingData = JSON.parse(JSON.stringify(formData));
 
-      if (workingData.auth?.users) {
-        for (const user of workingData.auth.users) {
-          if (user.needsBcrypt) {
-            const hash = await authenticationService.hashPassword({
-              value: user.passwordBcrypt,
-            });
-            user.passwordBcrypt = hash.value;
-            delete user.needsBcrypt;
-          }
-          delete user.isExisting;
-        }
-      }
-
       let newConfig = clone(ConfigSchema, config);
-      newConfig.auth = fromJson(AuthSchema, workingData.auth, {
-        ignoreUnknownFields: false,
-      });
       newConfig.multihost = fromJson(MultihostSchema, workingData.multihost, {
         ignoreUnknownFields: false,
       });
       newConfig.instance = workingData.instance;
-
-      if (!newConfig.auth?.users && !newConfig.auth?.disabled) {
-        throw new Error(m.settings_error_no_users());
-      }
 
       setConfig(await backrestService.setConfig(newConfig));
       setInitialFormData(JSON.stringify(formData));
@@ -243,11 +211,8 @@ export const SettingsModal = () => {
     }
   };
 
-  const users = getField(["auth", "users"]) || [];
-
   const sections: SectionDef[] = [
     { id: "general", label: m.settings_section_general(), icon: <FiSettings size={14} /> },
-    { id: "auth", label: m.settings_section_authentication(), icon: <FiLock size={14} /> },
     // 多主机（身份与共享 / Pairing Tokens / 已授权实例 / 已知主机）默认隐藏，
     // 仅 URL 带 ?debug=1 时展示
     ...(isMultihostSyncEnabled && debug
@@ -284,18 +249,6 @@ export const SettingsModal = () => {
           description={m.settings_section_general_desc()}
         >
           <Stack gap={4}>
-            {users.length === 0 && !getField(["auth", "disabled"]) && (
-              <Alert status="warning">
-                <Stack gap={1}>
-                  <strong>{m.settings_initial_setup_title()}</strong>
-                  <Text fontSize="sm">{m.settings_initial_setup_message()}</Text>
-                  <Text fontSize="xs" fontStyle="italic">
-                    {m.settings_initial_setup_hint()}
-                  </Text>
-                </Stack>
-              </Alert>
-            )}
-
             <Field
               label={m.settings_field_instance_id()}
               helperText={m.settings_field_instance_id_tooltip()}
@@ -307,88 +260,6 @@ export const SettingsModal = () => {
                 disabled={!!config.instance}
                 placeholder={m.settings_field_instance_id_placeholder()}
               />
-            </Field>
-          </Stack>
-        </SectionCard>
-      </TwoPaneSection>
-
-      {/* Authentication Section */}
-      <TwoPaneSection id="auth">
-        <SectionCard
-          icon={<FiLock size={16} />}
-          title={m.settings_section_authentication()}
-          description={m.settings_section_authentication_desc()}
-        >
-          <Stack gap={4}>
-            <ToggleField
-              checked={getField(["auth", "disabled"]) || false}
-              onChange={(v) => updateField(["auth", "disabled"], v)}
-              label={m.settings_auth_disable()}
-              hint={m.settings_auth_disable_hint()}
-            />
-
-            <Field label={m.settings_auth_users()} required>
-              <Stack gap={3} width="full">
-                {users.map((user: any, index: number) => (
-                  <Flex key={index} gap={2} align="center" width="full">
-                    <Input
-                      placeholder={m.settings_auth_username_placeholder()}
-                      value={user.name}
-                      onChange={(e) => {
-                        const newUsers = [...users];
-                        newUsers[index].name = e.target.value;
-                        updateField(["auth", "users"], newUsers);
-                      }}
-                      disabled={user.isExisting}
-                      flex={1}
-                    />
-                    <PasswordInput
-                      placeholder={m.settings_auth_password_placeholder()}
-                      value={user.passwordBcrypt}
-                      onChange={(e) => {
-                        const newUsers = [...users];
-                        newUsers[index].passwordBcrypt = e.target.value;
-                        newUsers[index].needsBcrypt = true;
-                        updateField(["auth", "users"], newUsers);
-                      }}
-                      rootProps={{ flex: 1 }}
-                    />
-                    <IconButton
-                      size="sm"
-                      variant="ghost"
-                      aria-label={m.aria_remove()}
-                      onClick={() => {
-                        const newUsers = [...users];
-                        newUsers.splice(index, 1);
-                        updateField(["auth", "users"], newUsers);
-                      }}
-                    >
-                      <Minus />
-                    </IconButton>
-                  </Flex>
-                ))}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    updateField(
-                      ["auth", "users"],
-                      [
-                        ...users,
-                        {
-                          name: "",
-                          passwordBcrypt: "",
-                          needsBcrypt: true,
-                          isExisting: false,
-                        },
-                      ],
-                    );
-                  }}
-                  width="full"
-                >
-                  <Plus /> {m.settings_auth_add_user()}
-                </Button>
-              </Stack>
             </Field>
           </Stack>
         </SectionCard>
@@ -1126,15 +997,3 @@ const PeerPermissionsTile = ({ permissions, onUpdate, config, peerType }: any) =
     </Stack>
   );
 };
-
-const Alert = ({ status, children }: any) => (
-  <Box
-    p={4}
-    borderRadius="md"
-    bg={status === "warning" ? "orange.100" : "blue.100"}
-    color={status === "warning" ? "orange.800" : "blue.800"}
-    _dark={{ bg: "orange.900", color: "orange.200" }}
-  >
-    {children}
-  </Box>
-);

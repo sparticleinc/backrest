@@ -40,8 +40,7 @@ import { OperationStatus } from '../../gen/ts/v1/operations_pb';
 import { useResourceStatus } from '../api/resourceStatus';
 import { keyBy } from '../lib/util';
 import { Code } from '@connectrpc/connect';
-import { LoginModal } from '../features/auth/LoginModal';
-import { backrestService, syncStateService, getGBaseToken } from '../api/client';
+import { backrestService, syncStateService } from '../api/client';
 import { useConfig } from './provider';
 import { shouldShowSettings } from '../state/configutil';
 import { OpSelector, OpSelectorSchema } from '../../gen/ts/v1/service_pb';
@@ -963,25 +962,22 @@ const AuthenticationBoundary = ({ children }: { children: React.ReactNode }) => 
         setIsLoading(false);
         const code = err.code;
         if (err.code === Code.Unauthenticated) {
-          // When embedded under GBase Onprem the token comes from the host
-          // page; backrest's own login modal can't fix a rejected token.
-          if (getGBaseToken()) {
-            const message = m.auth_session_expired();
-            setError(message);
-            setIsAuthError(true);
-            alerts.error(message, 0);
-            setRedirectSeconds(5);
-            return;
-          }
-          showModal(<LoginModal />);
+          // The token comes from the GBase Onprem host page; redirect there
+          // so the user can (re-)login. 该页面不做多语言，固定日文文案。
+          const message =
+            "ログインセッションの有効期限が切れました。GBase Onprem に再度ログインしてください";
+          setError(message);
+          setIsAuthError(true);
+          alerts.error(message, 0);
+          setRedirectSeconds(5);
           return;
         } else if (err.code !== Code.Unavailable && err.code !== Code.DeadlineExceeded) {
           // Insufficient GBase authority: show a friendly hint, no redirect —
           // logging in again wouldn't change the user's permissions.
-          const isGBasePermissionDenied =
-            err.code === Code.PermissionDenied && !!getGBaseToken();
+          const isGBasePermissionDenied = err.code === Code.PermissionDenied;
+          // 权限不足页不做多语言，固定日文文案。
           const message = isGBasePermissionDenied
-            ? m.auth_permission_denied()
+            ? "バックアップ管理へのアクセス権限がありません。管理者にお問い合わせください"
             : err.message;
           setError(message);
           setIsAuthError(isGBasePermissionDenied);
@@ -1011,7 +1007,7 @@ const AuthenticationBoundary = ({ children }: { children: React.ReactNode }) => 
       >
         {redirectSeconds !== null && (
           <Text fontWeight="medium">
-            {m.auth_redirect_countdown({ seconds: redirectSeconds })}
+            {`${redirectSeconds}秒後にログインページへ移動します...`}
           </Text>
         )}
         {!isAuthError && (

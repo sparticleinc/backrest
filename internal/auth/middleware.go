@@ -15,49 +15,11 @@ func (k contextKey) String() string {
 }
 
 const UserContextKey contextKey = "user"
-const APIKeyContextKey contextKey = "api_key"
 
 func RequireAuthentication(h http.Handler, auth *Authenticator) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// When GBase auth is enabled it takes over all authentication,
-		// regardless of the local auth config.
-		if auth.gbase != nil {
-			// Pass OPTIONS through unauthenticated so CORS preflight succeeds.
-			if r.Method == http.MethodOptions {
-				h.ServeHTTP(w, r)
-				return
-			}
-			// The browser sends the GBase cookie automatically; fall back to
-			// the Authorization header for non-browser clients.
-			token := gbaseTokenFromCookie(r)
-			if token == "" {
-				token, _ = ParseBearerToken(r.Header.Get("Authorization"))
-			}
-			if token == "" {
-				http.Error(w, "Unauthorized (No Token)", http.StatusUnauthorized)
-				return
-			}
-			user, err := auth.gbase.VerifyToken(r.Context(), token)
-			if errors.Is(err, ErrNoPermission) {
-				http.Error(w, "Forbidden: "+ErrNoPermission.Error(), http.StatusForbidden)
-				return
-			} else if err != nil {
-				zap.S().Warnf("gbase auth blocked bad token: %v", err)
-				http.Error(w, "Unauthorized (Bad Token)", http.StatusUnauthorized)
-				return
-			}
-			ctx := context.WithValue(r.Context(), UserContextKey, user)
-			h.ServeHTTP(w, r.WithContext(ctx))
-			return
-		}
-
-		config, err := auth.config.Get()
-		if err != nil {
-			zap.S().Errorf("auth middleware failed to get config: %v", err)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		if config.GetAuth() == nil || config.GetAuth().GetDisabled() {
+		// GBase auth not configured (e.g. local dev build): no authentication.
+		if auth.gbase == nil {
 			h.ServeHTTP(w, r)
 			return
 		}
@@ -67,32 +29,25 @@ func RequireAuthentication(h http.Handler, auth *Authenticator) http.Handler {
 			h.ServeHTTP(w, r)
 			return
 		}
-
-		username, password, usesBasicAuth := r.BasicAuth()
-		if usesBasicAuth {
-			user, err := auth.Login(username, password)
-			if err == nil {
-				ctx := context.WithValue(r.Context(), UserContextKey, user)
-				h.ServeHTTP(w, r.WithContext(ctx))
-				return
-			}
+		// The browser sends the GBase cookie automatically; fall back to
+		// the Authorization header for non-browser clients.
+		token := gbaseTokenFromCookie(r)
+		if token == "" {
+			token, _ = ParseBearerToken(r.Header.Get("Authorization"))
 		}
-
-		// TODO: process the API Key
-
-		token, err := ParseBearerToken(r.Header.Get("Authorization"))
-		if err != nil {
-			http.Error(w, "Unauthorized (No Authorization Header)", http.StatusUnauthorized)
+		if token == "" {
+			http.Error(w, "Unauthorized (No Token)", http.StatusUnauthorized)
 			return
 		}
-
-		user, err := auth.VerifyJWT(token)
-		if err != nil {
-			zap.S().Warnf("auth middleware blocked bad JWT: %v", err)
+		user, err := auth.gbase.VerifyToken(r.Context(), token)
+		if errors.Is(err, ErrNoPermission) {
+			http.Error(w, "Forbidden: "+ErrNoPermission.Error(), http.StatusForbidden)
+			return
+		} else if err != nil {
+			zap.S().Warnf("gbase auth blocked bad token: %v", err)
 			http.Error(w, "Unauthorized (Bad Token)", http.StatusUnauthorized)
 			return
 		}
-
 		ctx := context.WithValue(r.Context(), UserContextKey, user)
 		h.ServeHTTP(w, r.WithContext(ctx))
 	})

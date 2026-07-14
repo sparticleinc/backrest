@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -115,7 +114,7 @@ func runApp() {
 		zap.L().Fatal("error creating peer state manager", zap.Error(err))
 	}
 	syncMgr := syncapi.NewSyncManager(configMgr, opLog, orch, peerStateManager)
-	authenticator := newAuthenticator(configMgr)
+	authenticator := newAuthenticator()
 
 	// Start background services
 	var wg sync.WaitGroup
@@ -196,33 +195,17 @@ func newLogStore(opLog *oplog.OpLog) (*logstore.LogStore, func(), error) {
 	return logStore, unsubscribe, nil
 }
 
-func newAuthenticator(configMgr *config.ConfigManager) *auth.Authenticator {
-	secretFile := path.Join(env.DataDir(), "jwt-secret")
-	data, err := os.ReadFile(secretFile)
-	if err != nil {
-		zap.L().Info("generating new auth secret")
-		secret := make([]byte, 64)
-		if n, err := rand.Read(secret); err != nil || n != 64 {
-			zap.L().Fatal("error generating secret", zap.Error(err))
-		}
-		if err := os.MkdirAll(env.DataDir(), 0700); err != nil {
-			zap.L().Fatal("error creating data directory", zap.Error(err))
-		}
-		if err := os.WriteFile(secretFile, secret, 0600); err != nil {
-			zap.L().Fatal("error writing secret to file", zap.Error(err))
-		}
-		data = secret
-	} else {
-		zap.L().Debug("loading auth secret from file")
-	}
-	authenticator := auth.NewAuthenticator(data, configMgr)
-	if gbaseURL := env.GBaseAuthURL(); gbaseURL != "" {
-		if version == "unknown" { // dev build, skip GBase auth for local development
-			zap.L().Info("dev build, GBase Onprem auth disabled")
-		} else {
-			zap.L().Info("GBase Onprem auth enabled, bearer tokens will be validated remotely", zap.String("url", gbaseURL))
-			authenticator.UseGBase(auth.NewGBaseAuthenticator(gbaseURL))
-		}
+func newAuthenticator() *auth.Authenticator {
+	authenticator := auth.NewAuthenticator()
+	gbaseURL := env.GBaseAuthURL()
+	switch {
+	case version == "unknown": // dev build, skip auth for local development
+		zap.L().Info("dev build, GBase Onprem auth disabled")
+	case gbaseURL == "":
+		zap.L().Warn("BACKREST_GBASE_AUTH_URL not set, API is unauthenticated")
+	default:
+		zap.L().Info("GBase Onprem auth enabled, bearer tokens will be validated remotely", zap.String("url", gbaseURL))
+		authenticator.UseGBase(auth.NewGBaseAuthenticator(gbaseURL))
 	}
 	return authenticator
 }
@@ -238,13 +221,12 @@ func newServer(
 ) *http.Server {
 	// API Handlers
 	apiBackrestHandler := api.NewBackrestHandler(configMgr, peerStateManager, orch, opLog, logStore)
-	apiAuthenticationHandler := api.NewAuthenticationHandler(authenticator)
 	syncHandler := syncapi.NewBackrestSyncHandler(syncMgr)
 	syncStateHandler := syncapi.NewBackrestSyncStateHandler(syncMgr)
 	downloadHandler := api.NewDownloadHandler(opLog, orch)
 
 	// Routing
-	rootMux := newRootMux(apiBackrestHandler, apiAuthenticationHandler, syncHandler, syncStateHandler, downloadHandler, authenticator)
+	rootMux := newRootMux(apiBackrestHandler, syncHandler, syncStateHandler, downloadHandler, authenticator)
 
 	var handler http.Handler = rootMux
 	if version == "unknown" { // dev build, enable CORS for local development
@@ -259,7 +241,6 @@ func newServer(
 
 func newRootMux(
 	apiBackrestHandler v1connect.BackrestHandler,
-	apiAuthenticationHandler v1connect.AuthenticationHandler,
 	syncHandler v1syncconnect.BackrestSyncServiceHandler,
 	syncStateHandler v1syncconnect.BackrestSyncStateServiceHandler,
 	downloadHandler http.Handler,
@@ -275,8 +256,6 @@ func newRootMux(
 
 	// Unauthenticated routes
 	unauthedMux := http.NewServeMux()
-	authPath, authHandler := v1connect.NewAuthenticationHandler(apiAuthenticationHandler)
-	unauthedMux.Handle(authPath, authHandler)
 	syncPath, syncHandlerUnauthed := v1syncconnect.NewBackrestSyncServiceHandler(syncHandler)
 	unauthedMux.Handle(syncPath, syncHandlerUnauthed)
 	unauthedMux.Handle("/download/", http.StripPrefix("/download", downloadHandler))
