@@ -61,7 +61,6 @@ export const FormModal: React.FC<FormModalProps> = ({
     <DialogRoot
       open={isOpen}
       onOpenChange={(e: { open: boolean }) => !e.open && onClose()}
-      closeOnInteractOutside={false}
       size={rootSize}
       scrollBehavior="inside"
     >

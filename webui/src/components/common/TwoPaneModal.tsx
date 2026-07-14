@@ -115,7 +115,6 @@ export const TwoPaneModal: React.FC<TwoPaneModalProps> = ({
     <DialogRoot
       open={isOpen}
       onOpenChange={(e: { open: boolean }) => !e.open && onClose()}
-      closeOnInteractOutside={false}
       size="xl"
     >
       <Portal>
