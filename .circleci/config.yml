@@ -152,7 +152,7 @@ jobs:
                   # - heredoc 使用 'REMOTE' 单引号形式，避免本地对脚本体再次展开
                   # - sed 直接替换 backrest 的整行 image 字段（兼容任意仓库前缀与任意标签格式）
                   ssh -p "$ONPREM_DEPLOY_SSH_PORT" "$ONPREM_DEPLOY_SSH_USER@$ONPREM_DEPLOY_SSH_HOST" \
-                    "IMAGE_TAG='$BASE_TAG' bash -s" <<'REMOTE'
+                    "IMAGE_TAG='$BASE_TAG' bash -s" \<<'REMOTE'
                   set -euo pipefail
                   cd gbase_onprem
                   echo "更新前 backrest 镜像行："
