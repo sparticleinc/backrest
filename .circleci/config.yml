@@ -4,10 +4,12 @@ version: 2.1
 #   原生分架构构建（amd64 / arm64 分别跑在各自原生机器，无需 QEMU 模拟）
 #   → 按 digest 推送（push-by-digest，不产生 -amd64/-arm64 中间标签）
 #   → 合并成单一多架构标签（manifest list）
-# 仅做 CI（构建 + 推送镜像到 Docker Hub），不含持续部署。
+# CI（构建 + 推送镜像到 Docker Hub）+ CD（main 分支合并镜像后 SSH 部署到上海服务器）。
 #
 # 需要在 CircleCI 项目环境变量中配置：
 #   DOCKERHUB_USERNAME / DOCKERHUB_PASS —— Docker Hub 登录凭据（对 gptbasesparticle 有推送权限）
+#   ONPREM_DEPLOY_SSH_HOST / ONPREM_DEPLOY_SSH_PORT / ONPREM_DEPLOY_SSH_USER —— 上海服务器 SSH 连接信息
+#   ONPREM_DEPLOY_SSH_KEY_FINGERPRINT —— CircleCI 项目设置 → SSH Keys 上传私钥后返回的 MD5 指纹
 
 jobs:
   # 基础校验：前端类型检查 + Go 构建（所有分支）
@@ -105,6 +107,9 @@ jobs:
     parameters:
       repo:
         type: string
+      deploy:
+        type: boolean
+        default: false
     working_directory: /tmp/workspace
     steps:
       - attach_workspace:
@@ -116,12 +121,48 @@ jobs:
             BASE_TAG=$(cat /tmp/workspace/IMAGE_TAG)
             AMD_DIGEST=$(cat /tmp/workspace/digests/amd64)
             ARM_DIGEST=$(cat /tmp/workspace/digests/arm64)
+            echo "export BASE_TAG=$BASE_TAG" >> $BASH_ENV
             echo "BASE_TAG=$BASE_TAG amd64=$AMD_DIGEST arm64=$ARM_DIGEST"
             docker buildx imagetools create \
               -t << parameters.repo >>:${BASE_TAG} \
               << parameters.repo >>@${AMD_DIGEST} \
               << parameters.repo >>@${ARM_DIGEST}
             docker buildx imagetools inspect << parameters.repo >>:${BASE_TAG}
+      - when:
+          # 仅当 deploy=true 且当前分支为 main 时才触发 CD
+          condition:
+            and:
+              - << parameters.deploy >>
+              - equal: [ main, << pipeline.git.branch >> ]
+          steps:
+            # 将预先在 CircleCI 项目设置 → SSH Keys 上传的私钥加载到 ssh-agent
+            # ONPREM_DEPLOY_SSH_KEY_FINGERPRINT 是上传私钥后 CircleCI 返回的 MD5 指纹
+            - add_ssh_keys:
+                fingerprints:
+                  - "$ONPREM_DEPLOY_SSH_KEY_FINGERPRINT"
+            - run:
+                name: SSH 部署到上海服务器（更新 backrest 镜像并重启）
+                command: |
+                  # 把服务器公钥写入 known_hosts，避免首次连接时的交互确认
+                  mkdir -p ~/.ssh
+                  ssh-keyscan -H -p "$ONPREM_DEPLOY_SSH_PORT" "$ONPREM_DEPLOY_SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+                  # 部署使用合并后的单一标签 BASE_TAG（多架构 manifest），服务器按自身架构自动拉取
+                  # - 本地 shell 展开 $BASE_TAG 组装成远端命令前缀
+                  # - heredoc 使用 'REMOTE' 单引号形式，避免本地对脚本体再次展开
+                  # - sed 直接替换 backrest 的整行 image 字段（兼容任意仓库前缀与任意标签格式）
+                  ssh -p "$ONPREM_DEPLOY_SSH_PORT" "$ONPREM_DEPLOY_SSH_USER@$ONPREM_DEPLOY_SSH_HOST" \
+                    "IMAGE_TAG='$BASE_TAG' bash -s" <<'REMOTE'
+                  set -euo pipefail
+                  cd gbase_onprem
+                  echo "更新前 backrest 镜像行："
+                  grep -E '^[[:space:]]*image:[[:space:]]*[^#[:space:]]*backrest:[0-9]' docker-compose.yml || true
+                  sed -i -E "s|^([[:space:]]*)image:[[:space:]]*[^#[:space:]]*backrest:[0-9][^[:space:]]*|\1image: gptbasesparticle/backrest:${IMAGE_TAG}|" docker-compose.yml
+                  echo "更新后 backrest 镜像行："
+                  grep -E "^[[:space:]]*image:[[:space:]]*gptbasesparticle/backrest:${IMAGE_TAG}" docker-compose.yml
+                  docker compose down backrest
+                  docker compose up backrest -d
+                  REMOTE
 
 workflows:
   ci:
@@ -162,6 +203,7 @@ workflows:
       - docker-manifest-merge:
           name: docker-manifest-merge
           repo: gptbasesparticle/backrest
+          deploy: true
           filters:
             branches:
               only:
