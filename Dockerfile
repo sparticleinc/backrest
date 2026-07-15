@@ -43,9 +43,10 @@ FROM alpine:latest
 LABEL org.opencontainers.image.source="https://github.com/garethgeorge/backrest"
 # 基础工具沿用官方 alpine 镜像；额外的 jq / rsync / docker-cli-compose 供部署侧的
 # 备份钩子脚本使用（jq 解析 JSON、rsync 同步文件、docker compose exec 复用宿主守护进程）。
+# setpriv 供 docker-entrypoint.sh 启动时降权到宿主机部署用户使用。
 RUN apk --no-cache add \
       tini ca-certificates curl bash rclone openssh tzdata \
-      docker-cli docker-cli-compose jq rsync && \
+      docker-cli docker-cli-compose jq rsync setpriv && \
     rclone selfupdate --stable
 RUN mkdir -p /tmp
 COPY --from=build /out/backrest /backrest
