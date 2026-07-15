@@ -56,5 +56,9 @@ RUN /backrest --install-deps-only && \
     mkdir -p /bin && mv /root/.local/share/backrest/restic /bin/restic
 # 显式指定 restic 路径，运行时直接使用该二进制、永不再触发下载安装。
 ENV BACKREST_RESTIC_COMMAND=/bin/restic
-ENTRYPOINT ["/sbin/tini", "--", "/docker-entrypoint"]
+# 容器以 root 启动，entrypoint.sh 探测 /userdata 属主后降权运行
+# /docker-entrypoint（详见 docker-entrypoint.sh 头部注释）。
+COPY docker-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/sbin/tini", "--", "/entrypoint.sh"]
 CMD ["/backrest"]
