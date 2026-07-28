@@ -97,7 +97,6 @@ const buildCron = (s: SimpleState): string => {
 // 应用 locale → cronstrue locale（cronstrue 仅内置部分语言，其余回退英文）
 const cronstrueLocale = (): string => {
   const map: Record<string, string> = {
-    zh: "zh_CN",
     ja: "ja",
     en: "en",
   };

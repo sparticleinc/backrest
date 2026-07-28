@@ -12,7 +12,6 @@ import {
 
 const languageNames: Record<string, string> = {
   en: "English",
-  zh: "中文",
   ja: "日本語",
 };
 
