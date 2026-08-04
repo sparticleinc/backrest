@@ -435,7 +435,7 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
       if (cleanPath.startsWith("@")) {
         cleanPath = cleanPath.substring(1);
       }
-      sftpArgs += ` -i "${cleanPath}"`;
+      sftpArgs += ` -i ${cleanPath}`;
     }
 
     if (sftpPort && sftpPort !== 0 && sftpPort !== 22) {
@@ -443,7 +443,7 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
     }
 
     if (sftpKnownHostsPath) {
-      sftpArgs += ` -oUserKnownHostsFile="${sftpKnownHostsPath}"`;
+      sftpArgs += ` -oUserKnownHostsFile=${sftpKnownHostsPath}`;
     }
 
     newFlags.push(`--option=sftp.args=${sftpArgs}`);
