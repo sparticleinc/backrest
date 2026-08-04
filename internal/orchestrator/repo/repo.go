@@ -477,7 +477,7 @@ func escapeGlob(s string) string {
 
 // normalizeSftpArgs converts sftp.args from shell-style (space-separated) to CSV format (comma-separated).
 // Restic requires CSV format for sftp.args to properly parse SSH parameters.
-// Example: "-o sftp.args=-oBatchMode=yes -i /path/to/key" -> "-o sftp.args=-oBatchMode=yes,-i,/path/to/key"
+// Example: "-o sftp.args='-oBatchMode=yes -i /path/to/key'" -> "-o sftp.args=-oBatchMode=yes -i /path/to/key"
 func normalizeSftpArgs(flag string) (string, error) {
 	// Find the position of "sftp.args="
 	prefix := "sftp.args="
@@ -496,9 +496,9 @@ func normalizeSftpArgs(flag string) (string, error) {
 		return "", fmt.Errorf("failed to parse sftp.args value: %w", err)
 	}
 
-	// Join the parsed arguments with commas (CSV format)
-	csvArgs := strings.Join(args, ",")
+	// Join the parsed arguments with spaces (preserve space-separated format for restic)
+	spacedArgs := strings.Join(args, " ")
 
-	// Reconstruct the flag with CSV-formatted sftp.args
-	return beforeSftpArgs + csvArgs, nil
+	// Reconstruct the flag with space-formatted sftp.args
+	return beforeSftpArgs + spacedArgs, nil
 }
