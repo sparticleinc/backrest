@@ -446,7 +446,7 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
       sftpArgs += ` -oUserKnownHostsFile="${sftpKnownHostsPath}"`;
     }
 
-    newFlags.push(`--option=sftp.args='${sftpArgs}'`);
+    newFlags.push(`--option=sftp.args=${sftpArgs}`);
 
     const sortedCurrent = [...currentFlags].sort();
     const sortedNew = [...newFlags].sort();
