@@ -490,15 +490,23 @@ func normalizeSftpArgs(flag string) (string, error) {
 	beforeSftpArgs := flag[:idx+len(prefix)]
 	sftpArgsValue := flag[idx+len(prefix):]
 
+	zap.S().Debugf("normalizeSftpArgs input: %q", flag)
+	zap.S().Debugf("sftp.args value before parsing: %q", sftpArgsValue)
+
 	// Parse the sftp.args value using shlex to handle shell quoting
 	args, err := shlex.Split(sftpArgsValue)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse sftp.args value: %w", err)
 	}
 
+	zap.S().Debugf("parsed args: %v", args)
+
 	// Join the parsed arguments with spaces
 	spacedArgs := strings.Join(args, " ")
 
+	result := beforeSftpArgs + "\"" + spacedArgs + "\""
+	zap.S().Debugf("normalizeSftpArgs output: %q", result)
+
 	// Wrap the value in double quotes so restic treats it as a single argument
-	return beforeSftpArgs + "\"" + spacedArgs + "\"", nil
+	return result, nil
 }
