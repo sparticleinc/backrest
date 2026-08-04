@@ -60,11 +60,25 @@ func NewRepoOrchestrator(config *v1.Config, repoConfig *v1.Repo, resticPath stri
 	}
 
 	for _, f := range repoConfig.GetFlags() {
-		args, err := shlex.Split(ExpandEnv(f))
-		if err != nil {
-			return nil, fmt.Errorf("parse flag %q for repo %q: %w", f, repoConfig.Id, err)
+		expandedFlag := ExpandEnv(f)
+		// Special handling for sftp.args: convert shell-style to CSV format
+		if strings.Contains(expandedFlag, "sftp.args=") {
+			normalized, err := normalizeSftpArgs(expandedFlag)
+			if err != nil {
+				return nil, fmt.Errorf("normalize sftp.args in flag %q for repo %q: %w", f, repoConfig.Id, err)
+			}
+			args, err := shlex.Split(normalized)
+			if err != nil {
+				return nil, fmt.Errorf("parse flag %q for repo %q: %w", f, repoConfig.Id, err)
+			}
+			opts = append(opts, restic.WithFlags(args...))
+		} else {
+			args, err := shlex.Split(expandedFlag)
+			if err != nil {
+				return nil, fmt.Errorf("parse flag %q for repo %q: %w", f, repoConfig.Id, err)
+			}
+			opts = append(opts, restic.WithFlags(args...))
 		}
-		opts = append(opts, restic.WithFlags(args...))
 	}
 
 	// Resolve command prefix
@@ -459,4 +473,32 @@ func escapeGlob(s string) string {
 		return s // escaping is not supported on Windows
 	}
 	return globEscapeReplacer.Replace(s)
+}
+
+// normalizeSftpArgs converts sftp.args from shell-style (space-separated) to CSV format (comma-separated).
+// Restic requires CSV format for sftp.args to properly parse SSH parameters.
+// Example: "-o sftp.args=-oBatchMode=yes -i /path/to/key" -> "-o sftp.args=-oBatchMode=yes,-i,/path/to/key"
+func normalizeSftpArgs(flag string) (string, error) {
+	// Find the position of "sftp.args="
+	prefix := "sftp.args="
+	idx := strings.Index(flag, prefix)
+	if idx == -1 {
+		return flag, nil // Not an sftp.args flag
+	}
+
+	// Split the flag into prefix part and sftp.args part
+	beforeSftpArgs := flag[:idx+len(prefix)]
+	sftpArgsValue := flag[idx+len(prefix):]
+
+	// Parse the sftp.args value using shlex to handle shell quoting
+	args, err := shlex.Split(sftpArgsValue)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse sftp.args value: %w", err)
+	}
+
+	// Join the parsed arguments with commas (CSV format)
+	csvArgs := strings.Join(args, ",")
+
+	// Reconstruct the flag with CSV-formatted sftp.args
+	return beforeSftpArgs + csvArgs, nil
 }
