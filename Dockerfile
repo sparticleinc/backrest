@@ -48,6 +48,14 @@ RUN apk --no-cache add \
       tini ca-certificates curl bash rclone openssh tzdata \
       docker-cli docker-cli-compose jq rsync setpriv && \
     rclone selfupdate --stable
+
+# Create backrest user (UID 1002) for running the application
+# This user is used for SSH key handling and file ownership in container
+RUN addgroup -g 1002 backrest && \
+    adduser -D -u 1002 -G backrest backrest && \
+    mkdir -p /home/backrest/.ssh && \
+    chown -R backrest:backrest /home/backrest
+
 RUN mkdir -p /tmp
 COPY --from=build /out/backrest /backrest
 COPY --from=build /out/docker-entrypoint /docker-entrypoint
