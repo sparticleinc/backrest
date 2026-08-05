@@ -18,4 +18,20 @@ DOCKER_GID="$(stat -c %g /var/run/docker.sock)"
 export HOME=/tmp
 
 echo "entrypoint: run as ${TARGET_UID}:${TARGET_GID} (owner of /userdata), docker gid ${DOCKER_GID}"
-exec setpriv --reuid "$TARGET_UID" --regid "$TARGET_GID" --groups "$DOCKER_GID" /docker-entrypoint "$@"
+# 部分挂载进来的文件（如 license-agent 写的运行时状态）属主是它自己容器内
+# 烘焙的固定 uid，不是部署用户，权限位是 0600，普通降权身份读不到，会让
+# backup-files.sh 的 rsync 失败并中止整次快照。
+# 保留 DAC_READ_SEARCH：只绕过“读”权限检查，不含写/chmod/chown，所以
+# 依旧不会产生本文件顶部说的那种 root 属主 dump（对比方案是整体以 root
+# 跑，backrest 仓库 85c9a12 之前就是这样，因此在恢复时踩过 zookeeper
+# rsync -a 报 Operation not permitted、license-agent 因属主不匹配 chmod
+# 私钥失败而崩溃重启等问题，才改成现在的降权模式，见 gbase_onprem_deploy_config
+# 的 596921a/e8d43dc）。运行该 capability 需要 docker-compose.yml 给这个
+# 服务加 cap_add: [DAC_READ_SEARCH]，否则下面的 bounding-set 里加不出来。
+exec setpriv \
+  --reuid "$TARGET_UID" --regid "$TARGET_GID" --groups "$DOCKER_GID" \
+  --bounding-set=-all,+dac_read_search \
+  --inh-caps=-all,+dac_read_search \
+  --ambient-caps=-all,+dac_read_search \
+  --no-new-privs \
+  /docker-entrypoint "$@"
