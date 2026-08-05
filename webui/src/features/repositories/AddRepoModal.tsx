@@ -165,6 +165,7 @@ interface SftpConfigSectionProps {
   knownHostsPath: string;
   onChangeKnownHostsPath: (path: string) => void;
   isWindows: boolean;
+  debug: boolean;
 }
 
 const SftpConfigSection = ({
@@ -176,6 +177,7 @@ const SftpConfigSection = ({
   knownHostsPath,
   onChangeKnownHostsPath,
   isWindows,
+  debug,
 }: SftpConfigSectionProps) => {
   const [setupLoading, setSetupLoading] = useState(false);
   const [generatedPublicKey, setGeneratedPublicKey] = useState<string | null>(null);
@@ -222,31 +224,31 @@ const SftpConfigSection = ({
   };
 
   return (
-    <Stack gap={4} ml={2} borderLeftWidth={2} pl={4}>
+    <Stack gap={4}>
       {!generatedPublicKey && !identityFile && (
-        <AccordionRoot collapsible variant="enclosed">
-          <AccordionItem value="bootstrap">
-            <AccordionItemTrigger>
-              {m.add_repo_modal_sftp_setup_key_title()}
-            </AccordionItemTrigger>
-            <AccordionItemContent>
-              <Stack gap={3} p={2}>
-                <CText fontSize="sm">
-                  {m.add_repo_modal_sftp_setup_key_desc_before()}
-                  <Code>~/.ssh/authorized_keys</Code>
-                  {m.add_repo_modal_sftp_setup_key_desc_after()}
-                </CText>
-                <Button
-                  size="sm"
-                  onClick={handleGenerateKey}
-                  loading={setupLoading}
-                >
-                  {m.add_repo_modal_sftp_generate_key()}
-                </Button>
-              </Stack>
-            </AccordionItemContent>
-          </AccordionItem>
-        </AccordionRoot>
+        <Box p={4} borderWidth={1} borderRadius="md" bg="bg.subtle">
+          <Stack gap={3}>
+            <Flex align="center" gap={1}>
+              <CText fontWeight="bold">
+                {m.add_repo_modal_sftp_setup_key_title()}
+              </CText>
+              <CText as="span" color="red.500" fontWeight="bold">
+                *
+              </CText>
+            </Flex>
+            <CText fontSize="sm" color="orange.500">
+              {m.add_repo_modal_sftp_setup_key_required_hint()}
+            </CText>
+            <CText fontSize="sm">
+              {m.add_repo_modal_sftp_setup_key_desc_before()}
+              <Code>~/.ssh/authorized_keys</Code>
+              {m.add_repo_modal_sftp_setup_key_desc_after()}
+            </CText>
+            <Button size="sm" onClick={handleGenerateKey} loading={setupLoading}>
+              {m.add_repo_modal_sftp_generate_key()}
+            </Button>
+          </Stack>
+        </Box>
       )}
 
       {generatedPublicKey && (
@@ -294,40 +296,54 @@ const SftpConfigSection = ({
         </Box>
       )}
 
-      <Field
-        label={m.add_repo_modal_sftp_identity_file()}
-        helperText={m.add_repo_modal_sftp_identity_file_help()}
-      >
-        <Input
-          placeholder="/home/user/.ssh/id_rsa"
-          value={identityFile}
-          onChange={(e) => onChangeIdentityFile(e.target.value)}
-        />
-      </Field>
+      {/* 认证密钥文件 / 端口 / known hosts 默认隐藏，仅 ?debug=1 时展示 */}
+      {debug && (
+        <>
+          <Field
+            label={m.add_repo_modal_sftp_identity_file()}
+            helperText={m.add_repo_modal_sftp_identity_file_help()}
+            required
+            invalid={!identityFile}
+            errorText={m.add_repo_modal_error_sftp_identity_file_required()}
+          >
+            <Input
+              placeholder="/home/user/.ssh/id_rsa"
+              value={identityFile}
+              onChange={(e) => onChangeIdentityFile(e.target.value)}
+            />
+          </Field>
 
-      <Field
-        label={m.add_repo_modal_sftp_port()}
-        helperText={m.add_repo_modal_sftp_port_help()}
-      >
-        <NumberInputField
-          value={port ? port.toString() : undefined}
-          onValueChange={(e) => onChangePort(e.valueAsNumber)}
-          min={1}
-          max={65535}
-          defaultValue={"22"}
-        />
-      </Field>
+          <Field
+            label={m.add_repo_modal_sftp_port()}
+            helperText={m.add_repo_modal_sftp_port_help()}
+            required
+            invalid={!port}
+            errorText={m.add_repo_modal_error_sftp_port_required()}
+          >
+            <NumberInputField
+              value={port ? port.toString() : undefined}
+              onValueChange={(e) => onChangePort(e.valueAsNumber)}
+              min={1}
+              max={65535}
+              defaultValue={"22"}
+            />
+          </Field>
 
-      <Field
-        label={m.add_repo_modal_sftp_known_hosts()}
-        helperText={m.add_repo_modal_sftp_known_hosts_help()}
-      >
-        <Input
-          placeholder="/home/user/.ssh/known_hosts"
-          value={knownHostsPath}
-          onChange={(e) => onChangeKnownHostsPath(e.target.value)}
-        />
-      </Field>
+          <Field
+            label={m.add_repo_modal_sftp_known_hosts()}
+            helperText={m.add_repo_modal_sftp_known_hosts_help()}
+            required
+            invalid={!knownHostsPath}
+            errorText={m.add_repo_modal_error_sftp_known_hosts_required()}
+          >
+            <Input
+              placeholder="/home/user/.ssh/known_hosts"
+              value={knownHostsPath}
+              onChange={(e) => onChangeKnownHostsPath(e.target.value)}
+            />
+          </Field>
+        </>
+      )}
     </Stack>
   );
 };
@@ -348,7 +364,7 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
   );
 
   const [sftpIdentityFile, setSftpIdentityFile] = useState("");
-  const [sftpPort, setSftpPort] = useState<number | null>(null);
+  const [sftpPort, setSftpPort] = useState<number | null>(22);
   const [sftpKnownHostsPath, setSftpKnownHostsPath] = useState("");
 
   const flagsRef = useRef<string[]>([]);
@@ -368,7 +384,7 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
     );
 
     setSftpIdentityFile("");
-    setSftpPort(null);
+    setSftpPort(22);
     setSftpKnownHostsPath("");
 
     if (template?.uri?.startsWith("sftp:")) {
@@ -478,6 +494,18 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
     const uri = getField(["uri"]);
     if (!uri?.trim()) {
       throw new Error(m.add_repo_modal_error_uri_required());
+    }
+
+    if (uri.startsWith("sftp:")) {
+      if (!sftpIdentityFile?.trim()) {
+        throw new Error(m.add_repo_modal_error_sftp_identity_file_required());
+      }
+      if (!sftpPort) {
+        throw new Error(m.add_repo_modal_error_sftp_port_required());
+      }
+      if (!sftpKnownHostsPath?.trim()) {
+        throw new Error(m.add_repo_modal_error_sftp_known_hosts_required());
+      }
     }
 
     await envVarSetValidator(formData);
@@ -912,6 +940,7 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
                     knownHostsPath={sftpKnownHostsPath}
                     onChangeKnownHostsPath={setSftpKnownHostsPath}
                     isWindows={isWindows}
+                    debug={debug}
                   />
                 )}
 
@@ -924,6 +953,15 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
                       </>
                     ) : undefined
                   }
+                  required={!template}
+                  invalid={
+                    !template &&
+                    !getField(["password"]) &&
+                    !(getField(["env"]) || []).some((e: string) =>
+                      e.startsWith("RESTIC_PASSWORD"),
+                    )
+                  }
+                  errorText={m.add_repo_modal_error_missing_password()}
                 >
                   <Flex gap={2} width="full">
                     <Box flex={1}>
@@ -948,20 +986,23 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
                   </Flex>
                 </Field>
 
-                <DynamicList
-                  label={m.add_repo_modal_field_env_vars()}
-                  items={getField(["env"]) || []}
-                  onUpdate={(items: string[]) => updateField(["env"], items)}
-                  tooltip={
-                    <Stack gap={2}>
-                      <CText>
-                        {m.add_repo_modal_field_env_vars_tooltip()}
-                      </CText>
-                      <EnvVarTooltip uri={getField(["uri"])} />
-                    </Stack>
-                  }
-                  placeholder="KEY=VALUE"
-                />
+                {/* 环境变量默认隐藏，仅 ?debug=1 时展示 */}
+                {debug && (
+                  <DynamicList
+                    label={m.add_repo_modal_field_env_vars()}
+                    items={getField(["env"]) || []}
+                    onUpdate={(items: string[]) => updateField(["env"], items)}
+                    tooltip={
+                      <Stack gap={2}>
+                        <CText>
+                          {m.add_repo_modal_field_env_vars_tooltip()}
+                        </CText>
+                        <EnvVarTooltip uri={getField(["uri"])} />
+                      </Stack>
+                    }
+                    placeholder="KEY=VALUE"
+                  />
+                )}
               </Stack>
             </SectionCard>
           </TwoPaneSection>
