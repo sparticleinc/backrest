@@ -26,12 +26,20 @@ echo "entrypoint: run as ${TARGET_UID}:${TARGET_GID} (owner of /userdata), docke
 # 跑，backrest 仓库 85c9a12 之前就是这样，因此在恢复时踩过 zookeeper
 # rsync -a 报 Operation not permitted、license-agent 因属主不匹配 chmod
 # 私钥失败而崩溃重启等问题，才改成现在的降权模式，见 gbase_onprem_deploy_config
-# 的 596921a/e8d43dc）。运行该 capability 需要 docker-compose.yml 给这个
-# 服务加 cap_add: [DAC_READ_SEARCH]，否则下面的 bounding-set 里加不出来。
+# 的 596921a/e8d43dc）。
+# 另外保留 CHOWN + FOWNER：restic restore 时要把还原文件的属主/权限位/
+# 时间戳改回快照里记录的原始值（各服务各自的 uid，不一定等于 TARGET_UID），
+# chown 需要 CHOWN；chown 完之后文件不再属于当前进程，后续恢复权限位/
+# 时间戳则需要 FOWNER（实测：只加 CHOWN 时 chown 本身会成功，但恢复时间戳会
+# 报 "operation not permitted"，restic 仍然会整体失败）。这两个能力只影响
+# “改属主/改不属于自己的文件的属性”，不含 DAC_OVERRIDE，所以仍然不能绕过
+# 普通的读写权限检查。运行这些 capability 需要 docker-compose.yml 给这个
+# 服务加 cap_add: [DAC_READ_SEARCH, CHOWN, FOWNER]，否则下面的 bounding-set
+# 里加不出来（setpriv 会直接报错退出，容器起不来）。
 exec setpriv \
   --reuid "$TARGET_UID" --regid "$TARGET_GID" --groups "$DOCKER_GID" \
-  --bounding-set=-all,+dac_read_search \
-  --inh-caps=-all,+dac_read_search \
-  --ambient-caps=-all,+dac_read_search \
+  --bounding-set=-all,+dac_read_search,+chown,+fowner \
+  --inh-caps=-all,+dac_read_search,+chown,+fowner \
+  --ambient-caps=-all,+dac_read_search,+chown,+fowner \
   --no-new-privs \
   /docker-entrypoint "$@"
