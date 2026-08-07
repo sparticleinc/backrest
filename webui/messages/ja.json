@@ -367,7 +367,7 @@
   "add_repo_modal_field_cpu_priority_placeholder": "CPU 優先度を選択します",
   "add_repo_modal_field_auto_unlock": "自動ロック解除機能を有効にする",
   "add_repo_modal_preview_json": "JSON 形式でプレビュー",
-  "add_repo_modal_error_missing_password": "リポジトリのパスワードが不足しています。以下のいずれかを指定してください：パスワードを入力するか、環境変数 RESTIC_PASSWORD 、RESTIC_PASSWORD_COMMAND 、または RESTIC_PASSWORD_FILE を設定してください。",
+  "add_repo_modal_error_missing_password": "リポジトリのパスワードが不足しています。",
   "dashboard_error_fetch": "概要データの取得に失敗しました：",
   "dashboard_repos_title": "リポジトリ",
   "dashboard_repos_empty": "リポジトリが見つかりませんでした",

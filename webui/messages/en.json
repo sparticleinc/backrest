@@ -380,7 +380,7 @@
   "add_repo_modal_field_cpu_priority_placeholder": "Select a CPU priority",
   "add_repo_modal_field_auto_unlock": "Auto Unlock",
   "add_repo_modal_preview_json": "Repo Config as JSON",
-  "add_repo_modal_error_missing_password": "Missing repo password. Either provide a password or set one of the env variables RESTIC_PASSWORD, RESTIC_PASSWORD_COMMAND, RESTIC_PASSWORD_FILE.",
+  "add_repo_modal_error_missing_password": "Missing repo password.",
   "dashboard_error_fetch": "Failed to fetch summary data: ",
   "dashboard_repos_title": "Repos",
   "dashboard_repos_empty": "No repos found",
