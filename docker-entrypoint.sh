@@ -17,6 +17,23 @@ DOCKER_GID="$(stat -c %g /var/run/docker.sock)"
 # 指到 /tmp（挂载自宿主机，可写），供 ssh 等工具存放临时状态。
 export HOME=/tmp
 
+# TARGET_UID/GID 是从宿主机 /userdata 属主抄来的任意数字，容器镜像的
+# /etc/passwd 只烘焙了 root(0) 和 backrest(1002) 两个账号，客户服务器的
+# 部署用户 uid 五花八门，大概率两个都对不上。多数工具靠上面的 $HOME 就能
+# 正常工作，但 OpenSSH 客户端例外：它启动时会自己调用 getpwuid(当前 uid)
+# 来解析"当前用户"，找不到条目就直接 fatal 退出（"No user exists for uid
+# N"），不受 $HOME 影响。这会导致 restic 的 sftp 仓库在这类服务器上必现
+# "server unexpectedly closed connection: unexpected EOF"（其实是本地 ssh
+# 子进程秒退，不是远端服务器的问题）。这里还是 root，能写 /etc/passwd、
+# /etc/group，补一条动态账号，一次性堵死这整类问题，不用再看某台服务器的
+# uid 是否恰好撞上 0 或 1002。
+if ! getent passwd "$TARGET_UID" >/dev/null 2>&1; then
+  echo "backrest-runtime:x:${TARGET_UID}:${TARGET_GID}:backrest runtime user:/tmp:/sbin/nologin" >> /etc/passwd
+fi
+if ! getent group "$TARGET_GID" >/dev/null 2>&1; then
+  echo "backrest-runtime:x:${TARGET_GID}:" >> /etc/group
+fi
+
 echo "entrypoint: run as ${TARGET_UID}:${TARGET_GID} (owner of /userdata), docker gid ${DOCKER_GID}"
 # 部分挂载进来的文件（如 license-agent 写的运行时状态）属主是它自己容器内
 # 烘焙的固定 uid，不是部署用户，权限位是 0600，普通降权身份读不到，会让
