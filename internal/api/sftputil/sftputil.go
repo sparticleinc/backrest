@@ -82,13 +82,6 @@ func AddHostKey(host, port string, sshDir string) error {
 		return fmt.Errorf("failed to write to known_hosts file: %w", err)
 	}
 
-	// Fix ownership for container environment
-	const BackrestUID = 1002
-	const BackrestGID = 1002
-	if err := os.Chown(knownHostsPath, BackrestUID, BackrestGID); err != nil {
-		zap.S().Warnf("failed to chown known_hosts to backrest user (1002:1002): %v (this is OK if not in container)", err)
-	}
-
 	zap.S().Infof("Added SFTP host %s to known_hosts file at %s", hostSpec, knownHostsPath)
 	return nil
 }
@@ -148,20 +141,6 @@ func GenerateKey(host string, sshDir string) ([]byte, []byte, string, error) {
 	}
 	if err := os.WriteFile(keyPath+".pub", pubBytes, 0644); err != nil {
 		zap.S().Warnf("failed to write public key: %v", err)
-	}
-
-	// Fix ownership for container environment
-	// In Docker, the backrest process runs as UID 1002
-	// Ensure SSH keys are owned by this user so the process can read them
-	const BackrestUID = 1002
-	const BackrestGID = 1002
-
-	if err := os.Chown(keyPath, BackrestUID, BackrestGID); err != nil {
-		// Only warn if chown fails - this might happen when running outside containers
-		zap.S().Warnf("failed to chown private key to backrest user (1002:1002): %v (this is OK if not in container)", err)
-	}
-	if err := os.Chown(keyPath+".pub", BackrestUID, BackrestGID); err != nil {
-		zap.S().Warnf("failed to chown public key to backrest user (1002:1002): %v (this is OK if not in container)", err)
 	}
 
 	return privPEM, pubBytes, keyPath, nil
