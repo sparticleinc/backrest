@@ -410,7 +410,7 @@ export const OperationRow = ({
           {menuItems.length > 0 && (
             <MenuRoot>
               <MenuTrigger asChild>
-                <IconButton variant="ghost" size="sm" aria-label="Actions">
+                <IconButton variant="ghost" size="sm" aria-label={m.aria_more_actions()}>
                   <FiMoreVertical />
                 </IconButton>
               </MenuTrigger>
@@ -430,7 +430,9 @@ export const OperationRow = ({
               <Text fontSize="xs" whiteSpace="pre-wrap">
                 {operation.status !== OperationStatus.STATUS_SUCCESS && (
                   <Text as="span" fontWeight="bold">
-                    {nameForStatus(operation.status)}:{" "}
+                    {m.op_row_status_prefix({
+                      status: nameForStatus(operation.status),
+                    })}
                   </Text>
                 )}
                 {operation.displayMessage}
