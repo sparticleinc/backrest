@@ -16,6 +16,7 @@ import {
   CommandPrefix_IONiceLevel,
   Hook_Condition,
   Hook_OnError,
+  HookSchema,
   Repo,
   RepoSchema,
   Schedule_Clock,
@@ -134,20 +135,43 @@ const repoDefaults = create(RepoSchema, {
     ioNice: CommandPrefix_IONiceLevel.IO_DEFAULT,
     cpuNice: CommandPrefix_CPUNiceLevel.CPU_DEFAULT,
   },
-  // 默认命令钩子：备份开始前导出各服务数据到 ./userdata（见
-  // gbase_onprem_deploy_config/shells/backup/backup.sh）。导出失败则取消本次操作，
-  // 避免对不完整数据打快照。
-  hooks: [
-    {
-      conditions: [Hook_Condition.SNAPSHOT_START],
-      onError: Hook_OnError.CANCEL,
-      action: {
-        case: "actionCommand",
-        value: { command: "bash /onprem/shells/backup/backup.sh" },
-      },
-    },
-  ],
 });
+
+// 默认命令钩子：备份开始前导出各服务数据到 ./userdata（见
+// gbase_onprem_deploy_config/shells/backup/backup.sh）。导出失败则取消本次操作，
+// 避免对不完整数据打快照。
+//
+// 该脚本只存在于 GBase Onprem 部署环境（镜像挂载了 /onprem）。本地开发机上没有这个
+// 路径，硬挂钩子会让 SNAPSHOT_START 以 exit 127 失败并直接取消备份，所以改为运行时
+// 询问后端脚本是否存在，存在才注入。注意不能用构建期的"是否 dev 构建"来判断：
+// Dockerfile 里构建前端的 stage 并没有拿到 BACKREST_BUILD_VERSION，生产镜像同样
+// 会被识别成 dev build。
+const backupHookDir = "/onprem/shells/backup/";
+const backupHookScript = "backup.sh";
+
+const defaultBackupHook = toJson(
+  HookSchema,
+  create(HookSchema, {
+    conditions: [Hook_Condition.SNAPSHOT_START],
+    onError: Hook_OnError.CANCEL,
+    action: {
+      case: "actionCommand",
+      value: { command: `bash ${backupHookDir}${backupHookScript}` },
+    },
+  }),
+  { alwaysEmitImplicit: true },
+);
+
+// 查询后端所在主机上是否存在备份脚本；任何异常都按“不存在”处理，宁可不挂钩子。
+const backupHookScriptExists = async (): Promise<boolean> => {
+  try {
+    const res = await backrestService.pathAutocomplete({ value: backupHookDir });
+    return (res.values || []).includes(backupHookScript);
+  } catch (e) {
+    console.error("probe backup hook script:", e);
+    return false;
+  }
+};
 
 interface ConfirmationState {
   open: boolean;
@@ -406,6 +430,19 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
         }
       }
     }
+  }, [template]);
+
+  // 新建仓库时才注入默认备份钩子，且只在后端主机上确实存在该脚本时注入。
+  useEffect(() => {
+    if (template) return;
+    let cancelled = false;
+    backupHookScriptExists().then((exists) => {
+      if (cancelled || !exists) return;
+      setFormData((prev: any) => ({ ...prev, hooks: [defaultBackupHook] }));
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [template]);
 
   const updateField = (path: string[], value: any) => {
