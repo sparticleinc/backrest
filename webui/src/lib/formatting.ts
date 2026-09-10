@@ -1,3 +1,6 @@
+// @ts-ignore - runtime.js is generated without type declarations
+import { getLocale } from "../paraglide/runtime";
+
 const units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
 export const formatBytes = (bytes?: number | string) => {
   if (!bytes) {
@@ -15,7 +18,7 @@ export const formatBytes = (bytes?: number | string) => {
   return `${Math.round(bytes * 100) / 100} ${units[unit]}`;
 };
 
-const fmtHourMinute = new Intl.DateTimeFormat(undefined, {
+const fmtHourMinute = new Intl.DateTimeFormat(getLocale(), {
   hour: "2-digit",
   minute: "2-digit",
   day: "2-digit",
@@ -24,7 +27,7 @@ const fmtHourMinute = new Intl.DateTimeFormat(undefined, {
 });
 
 const timezoneOffsetMs = new Date().getTimezoneOffset() * 60 * 1000;
-// formatTime formats a time as YYYY-MM-DD at HH:MM AM/PM
+// formatTime formats a timestamp as date + hour/minute in the UI language
 export const formatTime = (time: number | string | Date) => {
   if (typeof time === "string") {
     time = parseInt(time);
@@ -47,7 +50,7 @@ export const localISOTime = (time: number | string | Date) => {
   return d.toISOString();
 };
 
-const fmtDate = new Intl.DateTimeFormat(undefined, {
+const fmtDate = new Intl.DateTimeFormat(getLocale(), {
   year: "numeric",
   month: "2-digit",
   day: "2-digit",
@@ -63,9 +66,9 @@ export const formatDate = (time: number | string | Date) => {
   return fmtDate.format(d);
 };
 
-const fmtMonth = new Intl.DateTimeFormat("en-US", {
+const fmtMonth = new Intl.DateTimeFormat(getLocale(), {
   year: "numeric",
-  month: "2-digit",
+  month: "long",
 });
 export const formatMonth = (time: number | string | Date) => {
   if (typeof time === "string") {

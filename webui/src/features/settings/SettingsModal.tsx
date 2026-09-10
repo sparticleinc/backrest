@@ -20,6 +20,7 @@ import {
   FiGlobe,
 } from "react-icons/fi";
 import { formatErrorAlert, alerts } from "../../components/common/Alerts";
+import { formatTime } from "../../lib/formatting";
 import { backrestService } from "../../api/client";
 import { clone, create, fromJson, toJson } from "@bufbuild/protobuf";
 import {
@@ -498,8 +499,8 @@ const PairingTokenItem = ({
     token.expiresAtUnix === 0n
       ? m.settings_pairing_never_expires()
       : isExpired
-        ? m.settings_pairing_expired({ date: new Date(Number(token.expiresAtUnix) * 1000).toLocaleString() })
-        : m.settings_pairing_expires({ date: new Date(Number(token.expiresAtUnix) * 1000).toLocaleString() });
+        ? m.settings_pairing_expired({ date: formatTime(Number(token.expiresAtUnix) * 1000) })
+        : m.settings_pairing_expires({ date: formatTime(Number(token.expiresAtUnix) * 1000) });
 
   return (
     <Box p={3} borderWidth="1px" borderRadius="md">
