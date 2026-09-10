@@ -59,7 +59,7 @@
   "button_save": "Save",
   "settings_initial_setup_title": "Initial backrest setup! ",
   "settings_initial_setup_message": "Backrest has detected that you do not have any users configured, please add at least one user to secure the web interface.",
-  "settings_initial_setup_hint": "You can add more users later or, if you forget your password, reset users by editing the configuration file (typically in $HOME/.backrest/config.json)",
+  "settings_initial_setup_hint": "You can add more users later or, if you forget your password, reset users by editing the configuration file (typically in $HOME/.config/backrest/config.json)",
   "settings_field_instance_id": "Instance ID",
   "settings_validation_instance_id_required": "Instance ID is required",
   "settings_validation_instance_id_pattern": "Instance ID must be alphanumeric with '_-.' allowed as separators",
@@ -664,5 +664,6 @@
   "app_remote_plan_updated": "Remote plan updated",
   "app_error_load_config": "Failed to load configuration",
   "app_button_retry": "Retry",
-  "app_error_request_timeout": "Request timed out, backend may be unavailable"
+  "app_error_request_timeout": "Request timed out, backend may be unavailable",
+  "op_row_duration_suffix": "in {duration}"
 }
