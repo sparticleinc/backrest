@@ -665,5 +665,6 @@
   "app_error_load_config": "Failed to load configuration",
   "app_button_retry": "Retry",
   "app_error_request_timeout": "Request timed out, backend may be unavailable",
-  "op_row_duration_suffix": "in {duration}"
+  "op_row_duration_suffix": "in {duration}",
+  "op_row_status_prefix": "{status}: "
 }
