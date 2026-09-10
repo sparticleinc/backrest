@@ -1,7 +1,7 @@
 import { Stack, Flex, Text, Card, Button } from "@chakra-ui/react";
 import { NumberInputField } from "./NumberInput";
 import { Field } from "../ui/field";
-import cronstrue from "cronstrue/i18n";
+import { describeCron } from "../../lib/cronUtil";
 import * as m from "../../paraglide/messages";
 // @ts-ignore - runtime.js is generated without type declarations
 import { getLocale } from "../../paraglide/runtime";
@@ -94,24 +94,11 @@ const buildCron = (s: SimpleState): string => {
   return `${s.minute} ${s.hour} * * *`;
 };
 
-// 应用 locale → cronstrue locale（cronstrue 仅内置部分语言，其余回退英文）
-const cronstrueLocale = (): string => {
-  const map: Record<string, string> = {
-    ja: "ja",
-    en: "en",
-  };
-  return map[getLocale()] || "en";
-};
-
-const describeCron = (cron: string): string => {
+const describeCronSafe = (cron: string): string => {
   try {
-    return cronstrue.toString(cron, { locale: cronstrueLocale() });
+    return describeCron(cron);
   } catch {
-    try {
-      return cronstrue.toString(cron, { locale: "en" });
-    } catch {
-      return cron;
-    }
+    return cron;
   }
 };
 
@@ -276,7 +263,7 @@ export const SimpleScheduleFormItem = ({
                 </Text>
                 {value?.cron && (
                   <Text color="fg.muted" fontSize="sm" fontStyle="italic">
-                    {describeCron(value.cron)}
+                    {describeCronSafe(value.cron)}
                   </Text>
                 )}
                 <Button
@@ -293,7 +280,7 @@ export const SimpleScheduleFormItem = ({
             {/* 人类可读预览 */}
             {showTime && value?.cron && (
               <Text color="fg.muted" fontSize="sm">
-                {describeCron(value.cron)}
+                {describeCronSafe(value.cron)}
               </Text>
             )}
           </Stack>

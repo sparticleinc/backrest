@@ -8,7 +8,7 @@ import {
   Schedule_Clock,
   Schedule_ClockSchema,
 } from "../../../gen/ts/v1/config_pb";
-import cronstrue from "cronstrue";
+import { describeCron } from "../../lib/cronUtil";
 import * as m from "../../paraglide/messages"
 
 interface ScheduleDefaults {
@@ -135,7 +135,7 @@ export const ScheduleFormItem = ({
               helperText={(() => {
                 try {
                   return schedule.cron
-                    ? cronstrue.toString(schedule.cron)
+                    ? describeCron(schedule.cron)
                     : m.schedule_form_cron_syntax_hint();
                 } catch (e) {
                   return m.add_plan_modal_schedule_invalid_cron();

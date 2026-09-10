@@ -1,3 +1,6 @@
+import cronstrue from "cronstrue/i18n";
+// @ts-ignore - runtime.js is generated without type declarations
+import { getLocale } from "../paraglide/runtime";
 import { converter } from "react-js-cron";
 
 interface FindOptimalStartIndexConstraints {
@@ -233,4 +236,26 @@ export const getMinimumCronDuration = (
     }
     dayIndex++;
   } while (true);
+};
+
+// 应用 locale → cronstrue locale（cronstrue 仅内置部分语言，其余回退英文）
+const cronstrueLocale = (): string => {
+  const map: Record<string, string> = {
+    ja: "ja",
+    en: "en",
+  };
+  return map[getLocale()] || "en";
+};
+
+/**
+ * 把 cron 表达式转成当前界面语言的可读描述。
+ * cron 本身无效时会抛出，由调用方决定如何提示。
+ */
+export const describeCron = (cron: string): string => {
+  try {
+    return cronstrue.toString(cron, { locale: cronstrueLocale() });
+  } catch {
+    // 语言包缺失等情况回退英文；cron 无效时这里同样会抛出
+    return cronstrue.toString(cron, { locale: "en" });
+  }
 };
