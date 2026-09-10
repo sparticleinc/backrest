@@ -560,7 +560,7 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
         <AccordionItem value="json-preview">
           <AccordionItemTrigger>
             <CText fontSize="sm" color="fg.muted">
-              {m.add_repo_modal_preview_json()}
+              {m.add_plan_modal_preview_json()}
             </CText>
           </AccordionItemTrigger>
           <AccordionItemContent>
