@@ -160,17 +160,20 @@ export const OperationRow = ({
     );
   };
 
-  let details: string = "";
+  const detailParts: string[] = [];
   if (operation.status !== OperationStatus.STATUS_SUCCESS) {
-    details = nameForStatus(operation.status);
+    detailParts.push(nameForStatus(operation.status));
   }
   if (operation.unixTimeEndMs - operation.unixTimeStartMs > 100) {
-    details +=
-      " in " +
-      formatDuration(
-        Number(operation.unixTimeEndMs - operation.unixTimeStartMs),
-      );
+    detailParts.push(
+      m.op_row_duration_suffix({
+        duration: formatDuration(
+          Number(operation.unixTimeEndMs - operation.unixTimeStartMs),
+        ),
+      }),
+    );
   }
+  const details = detailParts.join(" ");
 
   const opName = displayTypeToString(getTypeForDisplay(operation));
 
