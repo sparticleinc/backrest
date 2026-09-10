@@ -1,6 +1,7 @@
 # 重要背景：本服务部署在不同客户的服务器环境中
 
-Backrest（本仓库，`gptbasesparticle/backrest` 私有化定制版）会被部署到多个客户的
+Backrest（本仓库 `sparticleinc/backrest`，上游 Backrest 的私有化定制版；构建出的
+镜像发布到 Docker Hub 的 `gptbasesparticle/backrest`）会被部署到多个客户的
 不同服务器上（例如 onprem_spark 等 GBase Onprem 环境）。这些服务器互不相同：
 部署用户的 UID/GID、挂载卷属主、Docker daemon 的 GID、`/etc/passwd` 里有哪些
 账号，在每台机器上都可能不一样。
