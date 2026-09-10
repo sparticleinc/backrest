@@ -22,7 +22,11 @@ jobs:
       - run:
           name: 前端依赖安装与类型检查
           command: |
-            corepack enable
+            # cimg 镜像以非 root 的 circleci 用户运行，而 corepack 的 shim 要写到
+            # node 所在的 /usr/local/bin（该目录属 root，且镜像里已自带 pnpm），
+            # 不加 sudo 会报 EACCES: permission denied, unlink '/usr/local/bin/pnpm'。
+            # 只启用 pnpm 一个 shim，不动 npm/yarn。
+            sudo corepack enable pnpm
             corepack prepare pnpm@10 --activate
             cd webui
             pnpm install --frozen-lockfile
