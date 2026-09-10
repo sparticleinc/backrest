@@ -4,10 +4,10 @@ version: 2.1
 #   原生分架构构建（amd64 / arm64 分别跑在各自原生机器，无需 QEMU 模拟）
 #   → 按 digest 推送（push-by-digest，不产生 -amd64/-arm64 中间标签）
 #   → 合并成单一多架构标签（manifest list）
-# CI（构建 + 推送镜像到 Docker Hub）+ CD（main 分支合并镜像后 SSH 部署到上海服务器）。
+# CI（构建 + 推送镜像到 docker.gbase.ai）+ CD（main 分支合并镜像后 SSH 部署到上海服务器）。
 #
 # 需要在 CircleCI 项目环境变量中配置：
-#   DOCKERHUB_USERNAME / DOCKERHUB_PASS —— Docker Hub 登录凭据（对 gptbasesparticle 有推送权限）
+#   GBASE_USERNAME / GBASE_PASSWORD —— docker.gbase.ai 登录凭据（对 gptbasesparticle 有推送权限）
 #   ONPREM_DEPLOY_SSH_HOST / ONPREM_DEPLOY_SSH_PORT / ONPREM_DEPLOY_SSH_USER —— 上海服务器 SSH 连接信息
 #   ONPREM_DEPLOY_SSH_KEY_FINGERPRINT —— CircleCI 项目设置 → SSH Keys 上传私钥后返回的 MD5 指纹
 
@@ -78,9 +78,9 @@ jobs:
       - attach_workspace:
           at: /tmp/workspace
       - run:
-          name: 登录 Docker Hub
+          name: 登录镜像仓库
           command: |
-            echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            echo "$GBASE_PASSWORD" | docker login docker.gbase.ai -u "$GBASE_USERNAME" --password-stdin
       - run:
           name: 按 digest 构建并推送（不创建架构标签）
           command: |
@@ -121,7 +121,7 @@ jobs:
       - run:
           name: 合并多架构镜像到统一时间戳标签
           command: |
-            echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            echo "$GBASE_PASSWORD" | docker login docker.gbase.ai -u "$GBASE_USERNAME" --password-stdin
             BASE_TAG=$(cat /tmp/workspace/IMAGE_TAG)
             AMD_DIGEST=$(cat /tmp/workspace/digests/amd64)
             ARM_DIGEST=$(cat /tmp/workspace/digests/arm64)
@@ -161,9 +161,9 @@ jobs:
                   cd gbase_onprem
                   echo "更新前 backrest 镜像行："
                   grep -E '^[[:space:]]*image:[[:space:]]*[^#[:space:]]*backrest:[0-9]' docker-compose.yml || true
-                  sed -i -E "s|^([[:space:]]*)image:[[:space:]]*[^#[:space:]]*backrest:[0-9][^[:space:]]*|\1image: gptbasesparticle/backrest:${IMAGE_TAG}|" docker-compose.yml
+                  sed -i -E "s|^([[:space:]]*)image:[[:space:]]*[^#[:space:]]*backrest:[0-9][^[:space:]]*|\1image: docker.gbase.ai/gptbasesparticle/backrest:${IMAGE_TAG}|" docker-compose.yml
                   echo "更新后 backrest 镜像行："
-                  grep -E "^[[:space:]]*image:[[:space:]]*gptbasesparticle/backrest:${IMAGE_TAG}" docker-compose.yml
+                  grep -E "^[[:space:]]*image:[[:space:]]*docker\.gbase\.ai/gptbasesparticle/backrest:${IMAGE_TAG}" docker-compose.yml
                   docker compose down backrest
                   docker compose up backrest -d
                   REMOTE
@@ -180,7 +180,7 @@ workflows:
                 - main
       - docker-build-push-arch:
           name: docker-build-push-amd64
-          repo: gptbasesparticle/backrest
+          repo: docker.gbase.ai/gptbasesparticle/backrest
           dockerfile: Dockerfile
           arch: amd64
           resource-class: medium
@@ -193,7 +193,7 @@ workflows:
             - prepare
       - docker-build-push-arch:
           name: docker-build-push-arm64
-          repo: gptbasesparticle/backrest
+          repo: docker.gbase.ai/gptbasesparticle/backrest
           dockerfile: Dockerfile
           arch: arm64
           resource-class: arm.medium
@@ -206,7 +206,7 @@ workflows:
             - prepare
       - docker-manifest-merge:
           name: docker-manifest-merge
-          repo: gptbasesparticle/backrest
+          repo: docker.gbase.ai/gptbasesparticle/backrest
           deploy: true
           filters:
             branches:
