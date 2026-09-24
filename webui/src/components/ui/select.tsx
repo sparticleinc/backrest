@@ -18,7 +18,13 @@ export const SelectTrigger = React.forwardRef<
   return (
     <ChakraSelect.Control {...rest}>
       {/* @ts-ignore */}
-      <ChakraSelect.Trigger ref={ref}>{children}</ChakraSelect.Trigger>
+      <ChakraSelect.Trigger
+        ref={ref}
+        cursor="pointer"
+        _disabled={{ cursor: "not-allowed" }}
+      >
+        {children}
+      </ChakraSelect.Trigger>
       {/* @ts-ignore */}
       <ChakraSelect.IndicatorGroup>
         {clearable && <SelectClearTrigger />}
