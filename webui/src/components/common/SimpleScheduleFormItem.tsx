@@ -113,6 +113,19 @@ const weekdayShortName = (dow: number): string => {
   }).format(d);
 };
 
+// 时/分输入框被清空时会回填为 0。用户环境里光标曾停在 0 前面，接着输入
+// 会得到「80」这类错误值（gbase-frontend-onprem#230）。回填渲染完成后
+// 显式把光标移到末尾，接着输入即是「08」。
+const moveCaretToEndIfCleared = (raw: string) => {
+  if (raw !== "") return;
+  const input = document.activeElement;
+  if (!(input instanceof HTMLInputElement)) return;
+  requestAnimationFrame(() => {
+    const end = input.value.length;
+    input.setSelectionRange(end, end);
+  });
+};
+
 // 展示顺序：周一..周日（cron 值 1,2,3,4,5,6,0）
 const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
@@ -221,12 +234,13 @@ export const SimpleScheduleFormItem = ({
                 <Flex gap={2} align="center">
                   <NumberInputField
                     value={String(state.hour)}
-                    onValueChange={(e: any) =>
+                    onValueChange={(e: any) => {
                       setTime(
                         Math.min(Math.max(e.valueAsNumber || 0, 0), 23),
                         state.minute,
-                      )
-                    }
+                      );
+                      moveCaretToEndIfCleared(e.value);
+                    }}
                     min={0}
                     max={23}
                     width="20"
@@ -234,12 +248,13 @@ export const SimpleScheduleFormItem = ({
                   <Text fontWeight="bold">:</Text>
                   <NumberInputField
                     value={String(state.minute)}
-                    onValueChange={(e: any) =>
+                    onValueChange={(e: any) => {
                       setTime(
                         state.hour,
                         Math.min(Math.max(e.valueAsNumber || 0, 0), 59),
-                      )
-                    }
+                      );
+                      moveCaretToEndIfCleared(e.value);
+                    }}
                     min={0}
                     max={59}
                     width="20"
