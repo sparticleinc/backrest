@@ -222,49 +222,49 @@ npm install -g @bufbuild/protoc-gen-es
 (cd cmd/backrest && go build .)
 ```
 
-## 本地开发启动（热重载）
+## ローカル開発環境の起動（ホットリロード）
 
-日常开发时，把后端和前端作为两个独立进程分别启动。Vite 开发服务器以热模块替换（HMR）的方式提供 WebUI，并把 API 请求代理到后端，因此前端改动会立即生效，无需重新构建。
+日常の開発では、バックエンドとフロントエンドを 2 つの独立したプロセスとして別々に起動します。Vite 開発サーバーがホットモジュールリプレースメント（HMR）で WebUI を配信し、API リクエストをバックエンドへプロキシするため、フロントエンドの変更は再ビルドなしで即座に反映されます。
 
 
-**1. 先启动前端**（Vite 开发服务器，地址 `http://localhost:5173`）：
+**1. まずフロントエンドを起動**（Vite 開発サーバー、アドレスは `http://localhost:5173`）:
 
 ```sh
 cd webui && pnpm i && pnpm start  
 ```
 
-**2. 再运行后端**（在 `127.0.0.1:9898` 上提供 API）：
+**2. 次にバックエンドを起動**（`127.0.0.1:9898` で API を提供）:
 
-如果没有安装air的话，需要先安装
+air をインストールしていない場合は、先にインストールします:
 ```bash
 go install github.com/air-verse/air@latest
 ```
-运行项目：
+起動:
 ```sh
 cd cmd/backrest
 export BACKREST_DATA=/tmp/backrest-dev/data
 export BACKREST_CONFIG=/tmp/backrest-dev/config.json
-# GBase 用户服务的 base URL（不含 /user/... 部分）。开发环境直连需带 /api/ogs 前缀；
-# 线上环境 /api/ogs 由 nginx 反代，按实际反代地址配置。
+# GBase ユーザーサービスの base URL（/user/... の部分は含まない）。開発環境で直接接続する場合は /api/ogs プレフィックスが必要。
+# 本番環境では /api/ogs を nginx がリバースプロキシしているので、実際のプロキシ先に合わせて設定する。
 export BACKREST_GBASE_AUTH_URL="https://onprem-dev.gbase.ai/api/ogs"
 air
 ```
 
 
-然后打开 **http://localhost:5173**（不是 `:9898`）。首次运行时会自动把 restic 二进制下载到 data 目录中。
+その後 **http://localhost:5173**（`:9898` ではありません）を開きます。初回起動時に restic のバイナリが data ディレクトリへ自動でダウンロードされます。
 
-注意事项：
+注意事項:
 
-- 前端（`webui/src`）改动会自动热重载，无需手动刷新。
-- 后端 Go 代码改动需要重启 `go run .` 进程（后端不支持热重载）。
-- 修改 `proto/` 下的 protobuf 定义后，需要重新生成共享绑定代码（前端和后端都依赖 `gen/`）：
+- フロントエンド（`webui/src`）の変更は自動でホットリロードされ、手動で再読み込みする必要はありません。
+- バックエンドの Go コードを変更した場合は `air` プロセスの再起動が必要です（`cmd/backrest` 配下以外の変更は air に検知されません）。
+- `proto/` 配下の protobuf 定義を変更した後は、共有バインディングコードを再生成する必要があります（フロントエンドとバックエンドの両方が `gen/` に依存しています）:
 
 ```sh
 buf generate
 ```
 
 > [!NOTE]
-> 下文的 Nix + direnv 方式以及 VSCode Dev Container 都要求启用 Nix flakes。如果你的环境未启用 flakes，请手动安装工具链（参见 [Manual Setup](#manual-setup)），并直接使用上面的命令进行开发。
+> 以下の Nix + direnv の方法と VSCode Dev Container は、どちらも Nix flakes の有効化が必要です。お使いの環境で flakes が有効になっていない場合は、ツールチェーンを手動でインストールし（[Manual Setup](#manual-setup) を参照）、上記のコマンドで直接開発してください。
 
 ## Using VSCode Dev Containers
 
