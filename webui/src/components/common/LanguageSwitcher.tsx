@@ -15,8 +15,8 @@ const languageNames: Record<string, string> = {
   ja: "日本語",
 };
 
-// 语言切换器。放在侧栏底部而非设置弹窗内：切换语言会刷新整页，
-// 避免用户在设置弹窗里编辑到一半时误触切换导致未保存数据丢失。
+// 言語切り替え。設定ダイアログ内ではなくサイドバーの下部に置く: 言語を切り替えるとページ全体が再読み込みされるため、
+// 設定ダイアログで編集途中に誤って切り替え、未保存のデータを失うのを避ける。
 export const LanguageSwitcher = () => {
   const { preferences, updatePreference, availableLanguages } =
     useUserPreferences();
@@ -38,7 +38,7 @@ export const LanguageSwitcher = () => {
       {/* @ts-ignore */}
       <SelectTrigger>
         <FiGlobe style={{ marginInline: "0 6px", flexShrink: 0 }} />
-        {/* pe 预留出右侧下拉箭头的空间，避免文字与箭头重叠 */}
+        {/* pe で右側のドロップダウン矢印の領域を確保し、文字と矢印が重ならないようにする */}
         <SelectValueText
           pe={6}
           placeholder={m.settings_select_language_placeholder()}

@@ -31,9 +31,9 @@ export const useUserPreferences = () => {
     });
 
     if (key === "language") {
-      // reload:true 让整页重新渲染，切换后立即全局生效。
-      // paraglide 的 m.xxx() 消息在渲染时才读 locale、且非响应式，
-      // 不刷新的话除本组件外的文案不会更新。
+      // reload:true でページ全体を再描画し、切り替え後すぐに全体へ反映させる。
+      // paraglide の m.xxx() メッセージは描画時に初めて locale を読み、リアクティブではないため、
+      // 再読み込みしないとこのコンポーネント以外の文言が更新されない。
       setLocale(value as string, { reload: true });
     }
   };

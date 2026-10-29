@@ -803,7 +803,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
       </AccordionRoot>
       </Box>
 
-      {/* LANGUAGE SWITCHER：钉在侧栏左下角，切换会刷新整页 */}
+      {/* LANGUAGE SWITCHER: サイドバーの左下に固定。切り替えるとページ全体が再読み込みされる */}
       <Box flexShrink={0} px={4} py={3} bg="bg.panel">
         <LanguageSwitcher />
       </Box>
@@ -830,7 +830,7 @@ export const App: React.FC = () => {
 
       {/* RIGHT COLUMN */}
       <Flex direction="column" flex="1" overflow="hidden">
-        {/* TOP BAR — 透明底，露出画布，使左侧白色栏成为连续的一列 */}
+        {/* TOP BAR — 背景を透明にしてキャンバスを見せ、左側の白いバーが連続した 1 列に見えるようにする */}
         <Flex as="header" align="center" px={4} h="60px" color="fg" flexShrink={0}>
           {/* Mobile-only: hamburger + brand (sidebar is hidden on mobile) */}
           <Box display={{ base: 'block', lg: 'none' }} mr={2}>
@@ -963,7 +963,7 @@ const AuthenticationBoundary = ({ children }: { children: React.ReactNode }) => 
         const code = err.code;
         if (err.code === Code.Unauthenticated) {
           // The token comes from the GBase Onprem host page; redirect there
-          // so the user can (re-)login. 该页面不做多语言，固定日文文案。
+          // so the user can (re-)login. このページは多言語対応せず、日本語の文言で固定する。
           const message =
             "ログインセッションの有効期限が切れました。GBase Onprem に再度ログインしてください";
           setError(message);
@@ -975,7 +975,7 @@ const AuthenticationBoundary = ({ children }: { children: React.ReactNode }) => 
           // Insufficient GBase authority: show a friendly hint, no redirect —
           // logging in again wouldn't change the user's permissions.
           const isGBasePermissionDenied = err.code === Code.PermissionDenied;
-          // 权限不足页不做多语言，固定日文文案。
+          // 権限不足のページは多言語対応せず、日本語の文言で固定する。
           const message = isGBasePermissionDenied
             ? "バックアップ管理へのアクセス権限がありません。管理者にお問い合わせください"
             : err.message;

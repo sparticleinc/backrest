@@ -6,12 +6,12 @@ import * as m from "../../paraglide/messages";
 // @ts-ignore - runtime.js is generated without type declarations
 import { getLocale } from "../../paraglide/runtime";
 
-// 备份计划的「简易调度」UI：只暴露三种普通用户能理解的频率
-// （每天 / 每周 / 每月）外加「停用」，时间精确到时与分，背后生成
-// 标准 cron 表达式。复杂的 cron / 间隔调度仍由 ScheduleFormItem（高级
-// 模式，?debug=1）处理；本组件解析不了时给出只读提示。
+// バックアッププランの「簡易スケジュール」UI: 一般ユーザーが理解できる 3 種類の頻度
+// （毎日 / 毎週 / 毎月）と「無効」だけを見せ、時刻は時・分まで指定でき、裏では
+// 標準の cron 式を生成する。複雑な cron / 間隔スケジュールは引き続き ScheduleFormItem（詳細
+// モード、?debug=1）で扱い、本コンポーネントで解析できない場合は読み取り専用の案内を表示する。
 //
-// 时钟固定为 CLOCK_LOCAL（部署在日本东京时区，即本地时间）。
+// クロックは CLOCK_LOCAL 固定（日本の東京タイムゾーンにデプロイされるため、ローカル時刻のこと）。
 
 const CLOCK_LOCAL = "CLOCK_LOCAL";
 
@@ -21,7 +21,7 @@ interface SimpleState {
   freq: Frequency;
   hour: number;
   minute: number;
-  weekdays: number[]; // cron dow，0=周日 .. 6=周六
+  weekdays: number[]; // cron の dow、0=日曜 .. 6=土曜
   day: number; // cron dom，1..31
 }
 
@@ -29,14 +29,14 @@ const DEFAULT_STATE: SimpleState = {
   freq: "daily",
   hour: 0,
   minute: 0,
-  weekdays: [1], // 默认周一
+  weekdays: [1], // デフォルトは月曜
   day: 1,
 };
 
 const isNum = (s: string) => /^\d+$/.test(s);
 
-// 把 schedule（JSON 形态：{ cron, clock } / { maxFrequencyHours } / { disabled }）
-// 解析成简易状态。无法用简易模式表达时返回 freq: "advanced"。
+// schedule（JSON 形式: { cron, clock } / { maxFrequencyHours } / { disabled }）を
+// 簡易状態に解析する。簡易モードで表現できない場合は freq: "advanced" を返す。
 const parseSchedule = (schedule: any): SimpleState => {
   if (!schedule) return DEFAULT_STATE;
   if (schedule.disabled) return { ...DEFAULT_STATE, freq: "disabled" };
@@ -57,11 +57,11 @@ const parseSchedule = (schedule: any): SimpleState => {
   const hour = +hr;
   const minute = +min;
 
-  // 每天：日和星期都为 *
+  // 毎日: 日と曜日がどちらも *
   if (dom === "*" && dow === "*") {
     return { ...DEFAULT_STATE, freq: "daily", hour, minute };
   }
-  // 每周：日为 *，星期为数字列表
+  // 毎週: 日が *、曜日が数値のリスト
   if (dom === "*" && dow !== "*") {
     const wds = dow.split(",");
     if (wds.length && wds.every(isNum)) {
@@ -75,7 +75,7 @@ const parseSchedule = (schedule: any): SimpleState => {
     }
     return { ...DEFAULT_STATE, freq: "advanced" };
   }
-  // 每月：日为数字，星期为 *
+  // 毎月: 日が数値、曜日が *
   if (isNum(dom) && dow === "*") {
     return { ...DEFAULT_STATE, freq: "monthly", hour, minute, day: +dom };
   }
@@ -102,10 +102,10 @@ const describeCronSafe = (cron: string): string => {
   }
 };
 
-// 本地化的星期短名（避免为 7×13 个标签新增 i18n 文案）。
-// cron dow：0=周日 .. 6=周六。用一个已知日期映射出名称。
+// ローカライズされた曜日の短縮名（7×13 個のラベルのために i18n 文言を増やすのを避ける）。
+// cron の dow: 0=日曜 .. 6=土曜。既知の日付から名前を割り出す。
 const weekdayShortName = (dow: number): string => {
-  // 2024-01-07 是周日，+dow 天即对应星期
+  // 2024-01-07 は日曜日なので、+dow 日がその曜日になる
   const d = new Date(Date.UTC(2024, 0, 7 + dow));
   return new Intl.DateTimeFormat(getLocale(), {
     weekday: "short",
@@ -113,9 +113,9 @@ const weekdayShortName = (dow: number): string => {
   }).format(d);
 };
 
-// 时/分输入框被清空时会回填为 0。用户环境里光标曾停在 0 前面，接着输入
-// 会得到「80」这类错误值（gbase-frontend-onprem#230）。回填渲染完成后
-// 显式把光标移到末尾，接着输入即是「08」。
+// 時・分の入力欄を空にすると 0 が補完される。ユーザー環境ではカーソルが 0 の前に残り、続けて入力すると
+// 「80」のような誤った値になっていた（gbase-frontend-onprem#230）。補完の描画が終わった後に
+// カーソルを明示的に末尾へ移し、続けて入力すると「08」になるようにする。
 const moveCaretToEndIfCleared = (raw: string) => {
   if (raw !== "") return;
   const input = document.activeElement;
@@ -126,7 +126,7 @@ const moveCaretToEndIfCleared = (raw: string) => {
   });
 };
 
-// 展示顺序：周一..周日（cron 值 1,2,3,4,5,6,0）
+// 表示順: 月曜..日曜（cron の値 1,2,3,4,5,6,0）
 const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 export const SimpleScheduleFormItem = ({
@@ -147,7 +147,7 @@ export const SimpleScheduleFormItem = ({
       onChange({ disabled: true, clock: CLOCK_LOCAL });
       return;
     }
-    // 从当前状态继承时间，避免切换频率时丢失已选时刻
+    // 現在の状態から時刻を引き継ぎ、頻度を切り替えたときに選択済みの時刻が失われないようにする
     emit({ ...state, freq });
   };
 
@@ -160,7 +160,7 @@ export const SimpleScheduleFormItem = ({
     let weekdays = has
       ? state.weekdays.filter((w) => w !== dow)
       : [...state.weekdays, dow];
-    if (weekdays.length === 0) weekdays = [dow]; // 至少保留一个
+    if (weekdays.length === 0) weekdays = [dow]; // 最低 1 つは残す
     emit({ ...state, freq: "weekly", weekdays });
   };
 
@@ -178,7 +178,7 @@ export const SimpleScheduleFormItem = ({
       <Card.Root variant="subtle" width="fit-content" minW="sm">
         <Card.Body>
           <Stack gap={4}>
-            {/* 频率 */}
+            {/* 頻度 */}
             <Field label={m.add_plan_modal_simple_schedule_frequency()}>
               <Flex gap={2} wrap="wrap">
                 {frequencyOptions.map((opt) => (
@@ -194,7 +194,7 @@ export const SimpleScheduleFormItem = ({
               </Flex>
             </Field>
 
-            {/* 每周：星期选择 */}
+            {/* 毎週: 曜日の選択 */}
             {state.freq === "weekly" && (
               <Field label={m.add_plan_modal_simple_schedule_weekday_label()}>
                 <Flex gap={1} wrap="wrap">
@@ -213,7 +213,7 @@ export const SimpleScheduleFormItem = ({
               </Field>
             )}
 
-            {/* 每月：日期选择 */}
+            {/* 毎月: 日付の選択 */}
             {state.freq === "monthly" && (
               <NumberInputField
                 label={m.add_plan_modal_simple_schedule_day_label()}
@@ -228,7 +228,7 @@ export const SimpleScheduleFormItem = ({
               />
             )}
 
-            {/* 时刻：时 + 分 */}
+            {/* 時刻: 時 + 分 */}
             {showTime && (
               <Field label={m.add_plan_modal_simple_schedule_time()}>
                 <Flex gap={2} align="center">
@@ -263,14 +263,14 @@ export const SimpleScheduleFormItem = ({
               </Field>
             )}
 
-            {/* 停用说明 */}
+            {/* 無効時の説明 */}
             {state.freq === "disabled" && (
               <Text color="fg.muted" fontSize="sm">
                 {m.add_plan_modal_schedule_disabled_description()}
               </Text>
             )}
 
-            {/* 高级表达式：简易模式无法编辑 */}
+            {/* 詳細な式: 簡易モードでは編集できない */}
             {state.freq === "advanced" && (
               <Stack gap={2}>
                 <Text color="fg.muted" fontSize="sm">
@@ -292,7 +292,7 @@ export const SimpleScheduleFormItem = ({
               </Stack>
             )}
 
-            {/* 人类可读预览 */}
+            {/* 人が読めるプレビュー */}
             {showTime && value?.cron && (
               <Text color="fg.muted" fontSize="sm">
                 {describeCronSafe(value.cron)}

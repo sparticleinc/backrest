@@ -84,15 +84,15 @@ import {
 
 const repoDefaults = create(RepoSchema, {
   id: 'local-repo',
-  // 仓库落到专用卷 /repos（compose: ./backup-repository:/repos），与备份源 /userdata
-  // 隔离，避免把仓库套进备份源导致递归备份、体积膨胀，也满足数据/备份分离。
+  // リポジトリは専用ボリューム /repos（compose: ./backup-repository:/repos）に置き、バックアップ元 /userdata
+  // とは分離する。リポジトリをバックアップ元に入れ子にして再帰バックアップ・容量肥大化を招くのを避け、データとバックアップの分離も満たす。
   uri: '/repos',
   prunePolicy: {
     maxUnusedPercent: 10,
     schedule: {
       schedule: {
         case: "cron",
-        // 每周日当地时间凌晨 5 点开始清理
+        // 毎週日曜日の現地時間午前 5 時にクリーンアップを開始
         value: "0 5 * * 0",
       },
       clock: Schedule_Clock.LOCAL,
@@ -102,7 +102,7 @@ const repoDefaults = create(RepoSchema, {
     schedule: {
       schedule: {
         case: "cron",
-        // 每月 1 号当地时间凌晨 4 点
+        // 毎月 1 日の現地時間午前 4 時
         value: "0 4 1 * *",
       },
       clock: Schedule_Clock.LOCAL,
@@ -112,7 +112,7 @@ const repoDefaults = create(RepoSchema, {
     schedule: {
       schedule: {
         case: "cron",
-        // 每周六当地时间凌晨 5 点开始
+        // 毎週土曜日の現地時間午前 5 時に開始
         value: "0 5 * * 6",
       },
       clock: Schedule_Clock.LOCAL,
@@ -126,7 +126,7 @@ const repoDefaults = create(RepoSchema, {
           weekly: 4,
           monthly: 6,
           yearly: 2,
-          keepLastN: 3, // 最新（数量）：无论时间，至少保留最近 3 个快照
+          keepLastN: 3, // 最新（件数）: 期間に関係なく、直近 3 件のスナップショットを必ず残す
         },
       },
     },
@@ -137,15 +137,15 @@ const repoDefaults = create(RepoSchema, {
   },
 });
 
-// 默认命令钩子：备份开始前导出各服务数据到 ./userdata（见
-// gbase_onprem_deploy_config/shells/backup/backup.sh）。导出失败则取消本次操作，
-// 避免对不完整数据打快照。
+// デフォルトのコマンドフック: バックアップ開始前に各サービスのデータを ./userdata へエクスポートする（
+// gbase_onprem_deploy_config/shells/backup/backup.sh を参照）。エクスポートに失敗した場合は今回の操作を取り消し、
+// 不完全なデータのスナップショットを取らないようにする。
 //
-// 该脚本只存在于 GBase Onprem 部署环境（镜像挂载了 /onprem）。本地开发机上没有这个
-// 路径，硬挂钩子会让 SNAPSHOT_START 以 exit 127 失败并直接取消备份，所以改为运行时
-// 询问后端脚本是否存在，存在才注入。注意不能用构建期的"是否 dev 构建"来判断：
-// Dockerfile 里构建前端的 stage 并没有拿到 BACKREST_BUILD_VERSION，生产镜像同样
-// 会被识别成 dev build。
+// このスクリプトは GBase Onprem のデプロイ環境（イメージに /onprem がマウントされている）にしか存在しない。ローカル開発マシンには
+// このパスがなく、フックを固定で付けると SNAPSHOT_START が exit 127 で失敗してバックアップがそのまま取り消されるため、実行時に
+// バックエンドへスクリプトの有無を問い合わせ、存在する場合だけ注入する。ビルド時の「dev ビルドかどうか」で判定してはいけない:
+// Dockerfile のフロントエンドをビルドするステージには BACKREST_BUILD_VERSION が渡されておらず、本番イメージも
+// dev build と判定されてしまう。
 const backupHookDir = "/onprem/shells/backup/";
 const backupHookScript = "backup.sh";
 
@@ -162,7 +162,7 @@ const defaultBackupHook = toJson(
   { alwaysEmitImplicit: true },
 );
 
-// 查询后端所在主机上是否存在备份脚本；任何异常都按“不存在”处理，宁可不挂钩子。
+// バックエンドのホストにバックアップスクリプトが存在するかを問い合わせる。例外はすべて「存在しない」として扱い、フックを付けない側に倒す。
 const backupHookScriptExists = async (): Promise<boolean> => {
   try {
     const res = await backrestService.pathAutocomplete({ value: backupHookDir });
@@ -320,7 +320,7 @@ const SftpConfigSection = ({
         </Box>
       )}
 
-      {/* 认证密钥文件 / 端口 / known hosts 默认隐藏，仅 ?debug=1 时展示 */}
+      {/* 認証鍵ファイル / ポート / known hosts はデフォルトで非表示、?debug=1 のときだけ表示 */}
       {debug && (
         <>
           <Field
@@ -378,7 +378,7 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
   const [config, setConfig] = useConfig();
   const isRemoteOrigin = !!template?.originInstanceId;
 
-  // 调试模式：URL 中带 ?debug=1 时显示被默认隐藏的高级表单。
+  // デバッグモード: URL に ?debug=1 が付いているとき、デフォルトで非表示の詳細フォームを表示する。
   const debug = useDebug();
 
   const [formData, setFormData] = useState<any>(
@@ -432,7 +432,7 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
     }
   }, [template]);
 
-  // 新建仓库时才注入默认备份钩子，且只在后端主机上确实存在该脚本时注入。
+  // デフォルトのバックアップフックはリポジトリ新規作成時のみ、かつバックエンドのホストにスクリプトが実在する場合のみ注入する。
   useEffect(() => {
     if (template) return;
     let cancelled = false;
@@ -556,8 +556,8 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
   const handleDestroy = async () => {
     setConfirmLoading(true);
     try {
-      // 备份计划引用仓库，后端校验不允许删除仍被计划引用的仓库。
-      // 提前给出可读提示，指明需要先删除哪些计划。
+      // バックアッププランはリポジトリを参照しており、プランから参照されているリポジトリの削除はバックエンドの検証で拒否される。
+      // 事前に分かりやすいメッセージを出し、先に削除すべきプランを示す。
       const dependentPlans = (config?.plans || [])
         .filter((p) => p.repo === template!.id)
         .map((p) => p.id);
@@ -768,8 +768,8 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
   const sections: SectionDef[] = [
     { id: "identity", label: m.add_repo_modal_section_identity(), icon: <FiTag size={14} /> },
     { id: "connection", label: m.add_repo_modal_section_connection(), icon: <FiLink size={14} /> },
-    // Scheduling（Prune/Check/Forget/Retention）、Hooks、Advanced 默认隐藏，
-    // 仅 URL 带 ?debug=1 时展示
+    // Scheduling（Prune/Check/Forget/Retention）、Hooks、Advanced はデフォルトで非表示、
+    // URL に ?debug=1 が付いているときだけ表示
     ...(debug
       ? [
           { id: "scheduling", label: m.add_repo_modal_section_scheduling(), icon: <FiClock size={14} /> },
@@ -900,7 +900,7 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
                   />
                 </Field>
 
-                {/* 自动解锁 / Shared 选项默认隐藏，URL 带 ?debug=1 时展示 */}
+                {/* 自動アンロック / Shared オプションはデフォルトで非表示、URL に ?debug=1 が付いているときだけ表示 */}
                 {debug && (
                   <>
                     <ToggleField
@@ -1023,7 +1023,7 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
                   </Flex>
                 </Field>
 
-                {/* 环境变量默认隐藏，仅 ?debug=1 时展示 */}
+                {/* 環境変数はデフォルトで非表示、?debug=1 のときだけ表示 */}
                 {debug && (
                   <DynamicList
                     label={m.add_repo_modal_field_env_vars()}
@@ -1044,7 +1044,7 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
             </SectionCard>
           </TwoPaneSection>
 
-          {/* Scheduling Section：Prune/Check/Forget/Retention 策略默认隐藏，仅 ?debug=1 时展示 */}
+          {/* Scheduling Section: Prune/Check/Forget/Retention ポリシーはデフォルトで非表示、?debug=1 のときだけ表示 */}
           {debug && (
           <TwoPaneSection id="scheduling">
             <SectionCard
@@ -1141,7 +1141,7 @@ export const AddRepoModal = ({ template, onSaveOverride }: { template: Repo | nu
           </TwoPaneSection>
           )}
 
-          {/* Hooks / Advanced / JSON 预览默认隐藏，仅 ?debug=1 时展示 */}
+          {/* Hooks / Advanced / JSON プレビューはデフォルトで非表示、?debug=1 のときだけ表示 */}
           {debug && (
           <>
           {/* Hooks Section */}

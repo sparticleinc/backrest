@@ -1,21 +1,21 @@
 import { createSystem, defaultConfig, defineConfig } from "@chakra-ui/react";
 
 /**
- * GBase Onprem 风格主题。
+ * GBase Onprem スタイルのテーマ。
  *
- * 设计目标：在不更换 UI 组件库（Chakra UI）的前提下，把配色统一成
- * GBase Onprem 的视觉语言——紫色（violet）主色 + 冷灰中性色 + 浅冷色面板。
+ * 設計の狙い: UI コンポーネントライブラリ（Chakra UI）を置き換えずに、配色を
+ * GBase Onprem のビジュアル言語に統一する——紫（violet）のメインカラー + クールグレーのニュートラル + 淡い寒色系のパネル。
  *
- * 关键约定：Backrest 全站统一用 `blue` 作为"主色/强调色"（主按钮、链接、
- * 信息提示、开关等都写的是 blue.*）。GBase 的品牌主色是紫色 #7C68FB，
- * 因此这里"故意"把 blue 调色板重映射为 GBase 紫色——这样所有既有的
- * blue.* 用法会一次性变成品牌色，无需逐处修改业务代码（DRY，单一数据源）。
- * 同时提供 `brand` 别名，新代码可直接使用 colorPalette="brand"。
+ * 重要な約束事: Backrest は全画面で `blue` を「メインカラー/アクセントカラー」として使っている（主ボタン、リンク、
+ * 情報メッセージ、スイッチなどはすべて blue.* と書かれている）。GBase のブランドカラーは紫 #7C68FB なので、
+ * ここでは「あえて」blue パレットを GBase の紫にマッピングし直している——こうすることで既存の
+ * blue.* の使用箇所が一度にブランドカラーになり、業務コードを 1 箇所ずつ直す必要がない（DRY、単一の情報源）。
+ * あわせて `brand` エイリアスも用意しており、新しいコードでは colorPalette="brand" を直接使える。
  *
- * 色值来源：gbase-frontend-onprem/packages/app/theme/colors.ts
+ * 色値の出典: gbase-frontend-onprem/packages/app/theme/colors.ts
  */
 
-// GBase 品牌紫色（violet），对应 Mantine 的 50~900，并补全 Chakra 需要的 950。
+// GBase のブランドカラーの紫（violet）。Mantine の 50~900 に対応し、Chakra が必要とする 950 を補っている。
 const brandPalette = {
   50: { value: "#FBF9FF" },
   100: { value: "#F1EEFF" },
@@ -30,8 +30,8 @@ const brandPalette = {
   950: { value: "#3D3380" },
 };
 
-// 每个色板对应的语义令牌（solid/fg/muted/subtle/emphasized/contrast/focusRing），
-// 供 colorPalette="brand" / "blue" 使用。
+// 各パレットに対応するセマンティックトークン（solid/fg/muted/subtle/emphasized/contrast/focusRing）。
+// colorPalette="brand" / "blue" で使う。
 const brandSemantic = {
   solid: { value: "{colors.brand.500}" },
   contrast: { value: "white" },
@@ -44,7 +44,7 @@ const brandSemantic = {
   focusRing: { value: "{colors.brand.500}" },
 };
 
-// GBase 冷灰中性色（用于背景、边框、文本等所有中性语义令牌）。
+// GBase のクールグレーのニュートラルカラー（背景・枠線・テキストなど、すべてのニュートラルなセマンティックトークンに使う）。
 const grayPalette = {
   50: { value: "#F9FAFB" },
   100: { value: "#F2F4F7" },
@@ -62,7 +62,7 @@ const grayPalette = {
 const fontStack =
   '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji"';
 
-// GBase 全局主背景色 rgb(250, 251, 255)。
+// GBase 全体のメイン背景色 rgb(250, 251, 255)。
 const appBg = "#FAFBFF";
 
 const config = defineConfig({
@@ -72,7 +72,7 @@ const config = defineConfig({
   theme: {
     tokens: {
       colors: {
-        // brand 与 blue 指向同一套 GBase 紫色（见文件顶部说明）。
+        // brand と blue は同じ GBase の紫を指す（ファイル冒頭の説明を参照）。
         brand: brandPalette,
         blue: brandPalette,
         gray: grayPalette,
@@ -86,14 +86,14 @@ const config = defineConfig({
       colors: {
         brand: brandSemantic,
         blue: brandSemantic,
-        // GBase 模型：画布用浅冷色调 appBg，其上的"区块"（侧边栏 / 顶栏 / 卡片）
-        // 用白色 + 柔和阴影浮起来区分，而非边框线。
+        // GBase のモデル: キャンバスは淡い寒色の appBg とし、その上の「ブロック」（サイドバー / トップバー / カード）は
+        // 枠線ではなく白 + 柔らかい影で浮かせて区別する。
         bg: {
           canvas: { value: { base: appBg, _dark: "{colors.gray.950}" } },
           panel: { value: { base: "#FFFFFF", _dark: "{colors.gray.900}" } },
         },
       },
-      // GBase 风格阴影：柔和、大面积、冷色调，用来替代边框分隔区块。
+      // GBase スタイルの影: 柔らかく、広く、寒色系。枠線の代わりにブロックの区切りとして使う。
       shadows: {
         panel: {
           value: {

@@ -57,7 +57,7 @@ export const SettingsModal = () => {
   const showModal = useShowModal();
   const peerStates = useSyncStates();
 
-  // 调试模式：URL 中带 ?debug=1 时显示被默认隐藏的高级设置。
+  // デバッグモード: URL に ?debug=1 が付いているとき、デフォルトで非表示の詳細設定を表示する。
   const debug = useDebug();
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [reloadOnCancel, setReloadOnCancel] = useState(false);
@@ -93,9 +93,9 @@ export const SettingsModal = () => {
     };
   });
 
-  // 初始快照须反映「已持久化」的配置，而非已注入默认值的表单——否则当
-  // config.instance 为空、表单预填了默认实例 ID 时，dirty 会误判为 false，
-  // 导致这个从未保存过的默认值无法保存（保存按钮一直灰着）。
+  // 初期スナップショットはデフォルト値を注入したフォームではなく「永続化済み」の設定を反映すること——さもないと
+  // config.instance が空でフォームにデフォルトのインスタンス ID が事前入力されたとき、dirty が誤って false と判定され、
+  // 一度も保存されていないこのデフォルト値が保存できなくなる（保存ボタンがずっとグレーアウトのまま）。
   const [initialFormData, setInitialFormData] = useState(() =>
     JSON.stringify({ ...formData, instance: config?.instance || "" }),
   );
@@ -214,8 +214,8 @@ export const SettingsModal = () => {
 
   const sections: SectionDef[] = [
     { id: "general", label: m.settings_section_general(), icon: <FiSettings size={14} /> },
-    // 多主机（身份与共享 / Pairing Tokens / 已授权实例 / 已知主机）默认隐藏，
-    // 仅 URL 带 ?debug=1 时展示
+    // マルチホスト（ID と共有 / Pairing Tokens / 承認済みインスタンス / 既知のホスト）はデフォルトで非表示、
+    // URL に ?debug=1 が付いているときだけ表示
     ...(isMultihostSyncEnabled && debug
       ? [
           {
@@ -266,7 +266,7 @@ export const SettingsModal = () => {
         </SectionCard>
       </TwoPaneSection>
 
-      {/* Multihost Section：身份与共享 / Pairing Tokens / 已授权实例 / 已知主机，默认隐藏，仅 ?debug=1 时展示 */}
+      {/* Multihost Section: ID と共有 / Pairing Tokens / 承認済みインスタンス / 既知のホスト。デフォルトで非表示、?debug=1 のときだけ表示 */}
       {isMultihostSyncEnabled && debug && (
         <TwoPaneSection id="multihost">
           <SectionCard

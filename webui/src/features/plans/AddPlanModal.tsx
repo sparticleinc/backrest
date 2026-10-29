@@ -64,17 +64,17 @@ import { SectionCard } from "../../components/common/SectionCard";
 
 // Default Plan
 const planDefaults = create(PlanSchema, {
-  // 默认权限范围：备份服务数据目录
+  // デフォルトの対象範囲: バックアップサービスのデータディレクトリ
   paths: ["/userdata"],
   schedule: {
     schedule: {
       case: "cron",
-      // 每天凌晨 0 点（服务器本地时间，部署在日本东京时区）
+      // 毎日午前 0 時（サーバーのローカル時刻。日本の東京タイムゾーンにデプロイされる）
       value: "0 0 * * *",
     },
     clock: Schedule_Clock.LOCAL,
   },
-  // 与创建仓库时的 forgetPolicy 保留策略保持一致
+  // リポジトリ作成時の forgetPolicy の保持ポリシーと揃える
   retention: {
     policy: {
       case: "policyTimeBucketed",
@@ -95,7 +95,7 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
   const showModal = useShowModal();
   const [config, setConfig] = useConfig();
 
-  // 调试模式：URL 中带 ?debug=1 时显示被默认隐藏的高级表单。
+  // デバッグモード: URL に ?debug=1 が付いているとき、デフォルトで非表示の詳細フォームを表示する。
   const debug = useDebug();
 
   const [formData, setFormData] = useState<any>(
@@ -257,8 +257,8 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
     ],
   });
 
-  // Scope（权限范围）、Retention（保留策略）、Advanced（高级设置）默认隐藏，
-  // 仅 URL 带 ?debug=1 时展示
+  // Scope（対象範囲）、Retention（保持ポリシー）、Advanced（詳細設定）はデフォルトで非表示、
+  // URL に ?debug=1 が付いているときだけ表示
   const sections: SectionDef[] = [
     { id: "details", label: m.add_plan_modal_section_details(), icon: <FiFileText size={14} /> },
     ...(debug
@@ -406,7 +406,7 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
         </SectionCard>
       </TwoPaneSection>
 
-      {/* Scope Section：权限范围默认隐藏，仅 ?debug=1 时展示 */}
+      {/* Scope Section: 対象範囲はデフォルトで非表示、?debug=1 のときだけ表示 */}
       {debug && (
       <TwoPaneSection id="scope">
         <SectionCard
@@ -480,7 +480,7 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
           title={m.add_plan_modal_field_schedule()}
           description={m.add_plan_modal_section_schedule_desc()}
         >
-          {/* 普通用户用简易调度（每天/每周/每月），?debug=1 时切换到完整 cron 编辑器 */}
+          {/* 一般ユーザーには簡易スケジュール（毎日/毎週/毎月）を使い、?debug=1 のときは完全な cron エディタに切り替える */}
           {debug ? (
             <ScheduleFormItem
               value={getField(["schedule"])}
@@ -496,7 +496,7 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
         </SectionCard>
       </TwoPaneSection>
 
-      {/* Retention（保留策略）/ Advanced（高级设置）默认隐藏，仅 ?debug=1 时展示 */}
+      {/* Retention（保持ポリシー）/ Advanced（詳細設定）はデフォルトで非表示、?debug=1 のときだけ表示 */}
       {debug && (
       <>
       {/* Retention Section */}
@@ -554,7 +554,7 @@ export const AddPlanModal = ({ template, onSaveOverride }: { template: Plan | nu
       </>
       )}
 
-      {/* JSON Preview：默认隐藏，仅 ?debug=1 时展示 */}
+      {/* JSON Preview: デフォルトで非表示、?debug=1 のときだけ表示 */}
       {debug && (
       <AccordionRoot collapsible variant="plain">
         <AccordionItem value="json-preview">

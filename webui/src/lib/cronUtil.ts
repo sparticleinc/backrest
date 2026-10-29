@@ -238,7 +238,7 @@ export const getMinimumCronDuration = (
   } while (true);
 };
 
-// 应用 locale → cronstrue locale（cronstrue 仅内置部分语言，其余回退英文）
+// アプリの locale → cronstrue の locale（cronstrue は一部の言語しか内蔵していないため、それ以外は英語にフォールバック）
 const cronstrueLocale = (): string => {
   const map: Record<string, string> = {
     ja: "ja",
@@ -248,14 +248,14 @@ const cronstrueLocale = (): string => {
 };
 
 /**
- * 把 cron 表达式转成当前界面语言的可读描述。
- * cron 本身无效时会抛出，由调用方决定如何提示。
+ * cron 式を現在の画面言語の読みやすい説明に変換する。
+ * cron 自体が無効な場合は例外を投げ、どう案内するかは呼び出し側に任せる。
  */
 export const describeCron = (cron: string): string => {
   try {
     return cronstrue.toString(cron, { locale: cronstrueLocale() });
   } catch {
-    // 语言包缺失等情况回退英文；cron 无效时这里同样会抛出
+    // 言語パックがない場合などは英語にフォールバック。cron が無効な場合はここでも同様に例外を投げる
     return cronstrue.toString(cron, { locale: "en" });
   }
 };
