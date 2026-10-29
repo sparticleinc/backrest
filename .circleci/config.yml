@@ -12,13 +12,16 @@ version: 2.1
 #   ONPREM_DEPLOY_SSH_KEY_FINGERPRINT —— CircleCI のプロジェクト設定 → SSH Keys で秘密鍵を登録した際に表示される MD5 フィンガープリント
 
 jobs:
-  # 基本チェック: フロントエンドの型チェック + Go ビルド（全ブランチ）
+  # 基本チェック: 中国語の残留チェック + フロントエンドの型チェック + Go ビルド（全ブランチ）
   check:
     docker:
       - image: cimg/go:1.26-node
     resource_class: medium
     steps:
       - checkout
+      - run:
+          name: 中国語の残留チェック
+          command: node scripts/check-chinese-residue.mjs --all
       - run:
           name: フロントエンドの依存関係インストールと型チェック
           command: |
