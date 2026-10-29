@@ -40,6 +40,15 @@
     "react-virtualized": "^9.22.6",
     "recharts": "^2.15.4"
   },
+  "pnpm": {
+    "overrides": {
+      "@inlang/paraglide-js>@inlang/sdk": "2.10.2",
+      "brace-expansion@>=2.0.0 <2.1.6": "^2.1.6",
+      "nanoid@<3.3.18": "^3.3.18",
+      "sha.js@<2.4.12": "^2.4.12",
+      "source-map-js@<1.2.2": "^1.2.2"
+    }
+  },
   "@parcel/resolver-default": {
     "packageExports": true
   },
@@ -63,7 +72,7 @@
     "sass": "^1.97.1",
     "tsx": "^4.21.0",
     "typescript": "^5.8.3",
-    "vite": "^7.3.0",
+    "vite": "^7.3.7",
     "vite-plugin-compression": "^0.5.1",
     "vite-tsconfig-paths": "^6.0.3"
   }
