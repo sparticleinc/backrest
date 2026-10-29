@@ -34,6 +34,17 @@ if ! getent group "$TARGET_GID" >/dev/null 2>&1; then
   echo "backrest-runtime:x:${TARGET_GID}:" >> /etc/group
 fi
 
+# restic 缓存目录里可能残留属主不是当前运行身份的文件：85c9a12 之前以 root
+# 运行时写的缓存，或者 /userdata 属主变更前的旧 uid 写的。降权后没有
+# DAC_OVERRIDE，restic 删改/新建这些缓存会 permission denied，prune 在
+# repack 阶段直接 Fatal。趁现在还是 root，把属主不对的文件统一改回来；
+# 只处理属主不对的文件，避免每次启动都把整个缓存（可能有几十 GB）遍历改一遍。
+CACHE_DIR="${XDG_CACHE_HOME:-/cache}"
+if [ -d "$CACHE_DIR" ]; then
+  find "$CACHE_DIR" \( ! -user "$TARGET_UID" -o ! -group "$TARGET_GID" \) \
+    -exec chown -h "$TARGET_UID:$TARGET_GID" {} +
+fi
+
 echo "entrypoint: run as ${TARGET_UID}:${TARGET_GID} (owner of /userdata), docker gid ${DOCKER_GID}"
 # 部分挂载进来的文件（如 license-agent 写的运行时状态）属主是它自己容器内
 # 烘焙的固定 uid，不是部署用户，权限位是 0600，普通降权身份读不到，会让
