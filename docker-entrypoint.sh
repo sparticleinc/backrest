@@ -1,32 +1,32 @@
 #!/bin/sh
-# 私有化部署入口：始终以 /userdata 挂载目录的属主身份运行 backrest。
-# 这样备份钩子写出的 dump、restic 快照里记录的 uid/gid、恢复到 /restore 的
-# 输出文件，属主都与宿主机部署用户一致，宿主机侧不会产生 root 文件，
-# restore.sh 也无需 sudo。
-# uid/gid 与 docker.sock 的组 GID 均在启动时自动探测：不同客户服务器的
-# 部署用户 uid 各不相同，无需在 docker-compose.yml 里逐台配置。
+# オンプレミス配備用のエントリポイント: backrest を常に /userdata マウントディレクトリの所有者として実行する。
+# これにより、バックアップフックが書き出す dump、restic スナップショットに記録される uid/gid、/restore への
+# リストア出力ファイルの所有者がすべてホスト側のデプロイユーザーと一致し、ホスト側に root 所有のファイルが生まれず、
+# restore.sh も sudo なしで動く。
+# uid/gid と docker.sock のグループ GID はいずれも起動時に自動検出する: 顧客サーバーごとに
+# デプロイユーザーの uid が異なるため、docker-compose.yml でサーバーごとに設定する必要はない。
 set -eu
 
 TARGET_UID="$(stat -c %u /userdata)"
 TARGET_GID="$(stat -c %g /userdata)"
-# 钩子脚本里的 docker compose exec 需要访问 docker.sock，把它的属组
-# 作为附加组带上。
+# フックスクリプト内の docker compose exec は docker.sock へのアクセスが必要なので、そのグループを
+# 補助グループとして付与する。
 DOCKER_GID="$(stat -c %g /var/run/docker.sock)"
 
-# 降权后的 uid 没有 passwd 条目，HOME 仍指向不可读的 /root；
-# 指到 /tmp（挂载自宿主机，可写），供 ssh 等工具存放临时状态。
+# 権限を落とした後の uid には passwd エントリがなく、HOME は読めない /root のままになるため、
+# /tmp（ホストからマウントされ書き込み可能）を指すようにし、ssh などのツールが一時状態を置けるようにする。
 export HOME=/tmp
 
-# TARGET_UID/GID 是从宿主机 /userdata 属主抄来的任意数字，容器镜像的
-# /etc/passwd 只烘焙了 root(0) 和 backrest(1002) 两个账号，客户服务器的
-# 部署用户 uid 五花八门，大概率两个都对不上。多数工具靠上面的 $HOME 就能
-# 正常工作，但 OpenSSH 客户端例外：它启动时会自己调用 getpwuid(当前 uid)
-# 来解析"当前用户"，找不到条目就直接 fatal 退出（"No user exists for uid
-# N"），不受 $HOME 影响。这会导致 restic 的 sftp 仓库在这类服务器上必现
-# "server unexpectedly closed connection: unexpected EOF"（其实是本地 ssh
-# 子进程秒退，不是远端服务器的问题）。这里还是 root，能写 /etc/passwd、
-# /etc/group，补一条动态账号，一次性堵死这整类问题，不用再看某台服务器的
-# uid 是否恰好撞上 0 或 1002。
+# TARGET_UID/GID はホストの /userdata の所有者から取った任意の数値だが、コンテナイメージの
+# /etc/passwd には root(0) と backrest(1002) の 2 アカウントしか焼き込まれておらず、顧客サーバーの
+# デプロイユーザーの uid はまちまちなので、どちらにも一致しない可能性が高い。大半のツールは上の $HOME だけで
+# 正常に動くが、OpenSSH クライアントは例外: 起動時に自分で getpwuid(現在の uid) を呼んで
+# 「現在のユーザー」を解決し、エントリが見つからないとそのまま fatal で終了する（"No user exists for uid
+# N"）。$HOME の影響は受けない。このため、こうしたサーバーでは restic の sftp リポジトリで必ず
+# "server unexpectedly closed connection: unexpected EOF" が発生する（実際はローカルの ssh
+# 子プロセスが即座に終了しているだけで、リモートサーバーの問題ではない）。ここではまだ root なので /etc/passwd・
+# /etc/group に書き込めるため、動的アカウントを 1 件追加してこの種の問題をまとめて塞ぐ。サーバーごとに
+# uid がたまたま 0 や 1002 と一致するかを気にする必要がなくなる。
 if ! getent passwd "$TARGET_UID" >/dev/null 2>&1; then
   echo "backrest-runtime:x:${TARGET_UID}:${TARGET_GID}:backrest runtime user:/tmp:/sbin/nologin" >> /etc/passwd
 fi
@@ -34,11 +34,11 @@ if ! getent group "$TARGET_GID" >/dev/null 2>&1; then
   echo "backrest-runtime:x:${TARGET_GID}:" >> /etc/group
 fi
 
-# restic 缓存目录里可能残留属主不是当前运行身份的文件：85c9a12 之前以 root
-# 运行时写的缓存，或者 /userdata 属主变更前的旧 uid 写的。降权后没有
-# DAC_OVERRIDE，restic 删改/新建这些缓存会 permission denied，prune 在
-# repack 阶段直接 Fatal。趁现在还是 root，把属主不对的文件统一改回来；
-# 只处理属主不对的文件，避免每次启动都把整个缓存（可能有几十 GB）遍历改一遍。
+# restic のキャッシュディレクトリには、現在の実行ユーザー以外が所有するファイルが残っている場合がある: 85c9a12 より前に root で
+# 実行していた頃に書かれたキャッシュや、/userdata の所有者が変わる前の旧 uid が書いたもの。権限を落とした後は
+# DAC_OVERRIDE がないため、restic がこれらのキャッシュを削除・変更・新規作成すると permission denied になり、prune が
+# repack 段階で Fatal になる。まだ root のうちに、所有者が正しくないファイルをまとめて戻しておく。
+# 対象は所有者が正しくないファイルだけに絞り、起動のたびにキャッシュ全体（数十 GB になりうる）を走査して変更するのを避ける。
 CACHE_DIR="${XDG_CACHE_HOME:-/cache}"
 if [ -d "$CACHE_DIR" ]; then
   find "$CACHE_DIR" \( ! -user "$TARGET_UID" -o ! -group "$TARGET_GID" \) \
@@ -46,24 +46,24 @@ if [ -d "$CACHE_DIR" ]; then
 fi
 
 echo "entrypoint: run as ${TARGET_UID}:${TARGET_GID} (owner of /userdata), docker gid ${DOCKER_GID}"
-# 部分挂载进来的文件（如 license-agent 写的运行时状态）属主是它自己容器内
-# 烘焙的固定 uid，不是部署用户，权限位是 0600，普通降权身份读不到，会让
-# backup-files.sh 的 rsync 失败并中止整次快照。
-# 保留 DAC_READ_SEARCH：只绕过“读”权限检查，不含写/chmod/chown，所以
-# 依旧不会产生本文件顶部说的那种 root 属主 dump（对比方案是整体以 root
-# 跑，backrest 仓库 85c9a12 之前就是这样，因此在恢复时踩过 zookeeper
-# rsync -a 报 Operation not permitted、license-agent 因属主不匹配 chmod
-# 私钥失败而崩溃重启等问题，才改成现在的降权模式，见 gbase_onprem_deploy_config
-# 的 596921a/e8d43dc）。
-# 另外保留 CHOWN + FOWNER：restic restore 时要把还原文件的属主/权限位/
-# 时间戳改回快照里记录的原始值（各服务各自的 uid，不一定等于 TARGET_UID），
-# chown 需要 CHOWN；chown 完之后文件不再属于当前进程，后续恢复权限位/
-# 时间戳则需要 FOWNER（实测：只加 CHOWN 时 chown 本身会成功，但恢复时间戳会
-# 报 "operation not permitted"，restic 仍然会整体失败）。这两个能力只影响
-# “改属主/改不属于自己的文件的属性”，不含 DAC_OVERRIDE，所以仍然不能绕过
-# 普通的读写权限检查。运行这些 capability 需要 docker-compose.yml 给这个
-# 服务加 cap_add: [DAC_READ_SEARCH, CHOWN, FOWNER]，否则下面的 bounding-set
-# 里加不出来（setpriv 会直接报错退出，容器起不来）。
+# マウントされたファイルの一部（license-agent が書く実行時状態など）は、そのコンテナ内に
+# 焼き込まれた固定 uid が所有者で、デプロイユーザーではなく、パーミッションも 0600 のため、権限を落とした通常の身元では読めず、
+# backup-files.sh の rsync が失敗してスナップショット全体が中断される。
+# DAC_READ_SEARCH は残す: 「読み取り」の権限チェックだけを回避し、書き込み・chmod・chown は含まないので、
+# このファイル冒頭で述べた root 所有の dump は依然として生まれない（比較対象は全体を root で
+# 動かす方式で、backrest リポジトリの 85c9a12 より前はそうしていた。そのためリストア時に zookeeper の
+# rsync -a が Operation not permitted を出す、license-agent が所有者不一致で秘密鍵の chmod に
+# 失敗してクラッシュ・再起動を繰り返す、といった問題に遭遇し、現在の降格方式に切り替えた。gbase_onprem_deploy_config
+# の 596921a/e8d43dc を参照）。
+# さらに CHOWN + FOWNER も残す: restic restore では、復元したファイルの所有者・パーミッション・
+# タイムスタンプをスナップショットに記録された元の値（各サービス固有の uid で、TARGET_UID と同じとは限らない）に戻す必要があり、
+# chown には CHOWN が要る。chown した後はファイルが現在のプロセスの所有ではなくなるため、続くパーミッション・
+# タイムスタンプの復元には FOWNER が要る（実測: CHOWN だけを付けた場合、chown 自体は成功するがタイムスタンプの復元で
+# "operation not permitted" となり、restic は結局全体として失敗する）。この 2 つの capability が影響するのは
+# 「所有者の変更／自分が所有しないファイルの属性変更」だけで、DAC_OVERRIDE は含まないため、依然として
+# 通常の読み書き権限チェックは回避できない。これらの capability を使うには、docker-compose.yml でこの
+# サービスに cap_add: [DAC_READ_SEARCH, CHOWN, FOWNER] を付ける必要がある。付けないと下の bounding-set
+# に追加できない（setpriv がエラーで終了し、コンテナが起動しない）。
 exec setpriv \
   --reuid "$TARGET_UID" --regid "$TARGET_GID" --groups "$DOCKER_GID" \
   --bounding-set=-all,+dac_read_search,+chown,+fowner \

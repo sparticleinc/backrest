@@ -1,14 +1,14 @@
-# 从源码自包含构建的镜像（供 CI 使用）。
-# 与 Dockerfile.alpine / Dockerfile.scratch 不同：那两个依赖 goreleaser 预先
-# 把各平台二进制放进构建上下文；本 Dockerfile 直接从源码编译，可用 `docker build` 独立构建。
+# ソースから自己完結的にビルドするイメージ（CI 用）。
+# Dockerfile.alpine / Dockerfile.scratch との違い: そちらの 2 つは goreleaser が事前に
+# 各プラットフォームのバイナリをビルドコンテキストに置いておく前提だが、この Dockerfile はソースから直接コンパイルし、`docker build` 単体でビルドできる。
 #
-# 多阶段：
-#   1) webui  —— 用 pnpm 构建前端（与架构无关，产物 webui/dist 会被 Go 二进制 embed）
-#   2) build  —— 交叉编译 backrest 与 docker-entrypoint（内嵌前端）
-#   3) 运行镜像 —— 基于 alpine，安装 restic 等依赖（与 Dockerfile.alpine 保持一致）
+# マルチステージ構成:
+#   1) webui  —— pnpm でフロントエンドをビルド（アーキテクチャ非依存。成果物 webui/dist は Go バイナリに embed される）
+#   2) build  —— backrest と docker-entrypoint をクロスコンパイル（フロントエンドを埋め込み）
+#   3) 実行イメージ —— alpine ベースで、restic などの依存をインストール（Dockerfile.alpine と揃える）
 # syntax=docker/dockerfile:1
 
-# Stage 1: 构建前端（架构无关）
+# Stage 1: フロントエンドのビルド（アーキテクチャ非依存）
 FROM node:22-alpine AS webui
 RUN corepack enable && corepack prepare pnpm@10 --activate
 WORKDIR /src/webui
@@ -17,16 +17,16 @@ RUN pnpm install --frozen-lockfile
 COPY webui/ ./
 RUN pnpm run build
 
-# Stage 2: 编译 Go 二进制（内嵌前端）
+# Stage 2: Go バイナリのコンパイル（フロントエンドを埋め込み）
 FROM golang:1.26-alpine AS build
 RUN apk add --no-cache git
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-# 用第一阶段产物替换 embed 目录，避免在容器内再跑 go generate（即 npm build）
+# 第 1 ステージの成果物で embed ディレクトリを置き換え、コンテナ内で go generate（= npm build）を再実行しないようにする
 COPY --from=webui /src/webui/dist ./webui/dist
-# TARGETOS / TARGETARCH 由 buildx 按目标平台自动注入
+# TARGETOS / TARGETARCH は buildx がターゲットプラットフォームに応じて自動で注入する
 ARG TARGETOS
 ARG TARGETARCH
 ARG BACKREST_BUILD_VERSION=0.0.0-ci
@@ -38,12 +38,12 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
       -ldflags "-s -w" \
       -o /out/docker-entrypoint ./cmd/docker-entrypoint
 
-# Stage 3: 运行镜像
+# Stage 3: 実行イメージ
 FROM alpine:latest
 LABEL org.opencontainers.image.source="https://github.com/garethgeorge/backrest"
-# 基础工具沿用官方 alpine 镜像；额外的 jq / rsync / docker-cli-compose 供部署侧的
-# 备份钩子脚本使用（jq 解析 JSON、rsync 同步文件、docker compose exec 复用宿主守护进程）。
-# setpriv 供 docker-entrypoint.sh 启动时降权到宿主机部署用户使用。
+# 基本ツールは公式 alpine イメージを踏襲。追加の jq / rsync / docker-cli-compose はデプロイ側の
+# バックアップフックスクリプトで使う（jq で JSON を解析、rsync でファイルを同期、docker compose exec でホストのデーモンを再利用）。
+# setpriv は docker-entrypoint.sh が起動時にホストのデプロイユーザーへ権限を落とすために使う。
 RUN apk --no-cache add \
       tini ca-certificates curl bash rclone openssh tzdata \
       docker-cli docker-cli-compose jq rsync setpriv && \
@@ -59,14 +59,14 @@ RUN addgroup -g 1002 backrest && \
 RUN mkdir -p /tmp
 COPY --from=build /out/backrest /backrest
 COPY --from=build /out/docker-entrypoint /docker-entrypoint
-# 构建时就把 restic 装好（在原生架构机器上构建，无需 QEMU 模拟）。
-# 此 RUN 早于下面的 ENV，故 install-deps 走默认解析、下载所需版本到数据目录，再移到 /bin。
+# restic はビルド時にインストールしておく（ネイティブアーキテクチャのマシンでビルドするので QEMU エミュレーションは不要）。
+# この RUN は下の ENV より前にあるため、install-deps はデフォルトの解決方法で必要なバージョンをデータディレクトリにダウンロードし、/bin へ移動する。
 RUN /backrest --install-deps-only && \
     mkdir -p /bin && mv /root/.local/share/backrest/restic /bin/restic
-# 显式指定 restic 路径，运行时直接使用该二进制、永不再触发下载安装。
+# restic のパスを明示し、実行時は常にこのバイナリを使ってダウンロード・インストールが二度と走らないようにする。
 ENV BACKREST_RESTIC_COMMAND=/bin/restic
-# 容器以 root 启动，entrypoint.sh 探测 /userdata 属主后降权运行
-# /docker-entrypoint（详见 docker-entrypoint.sh 头部注释）。
+# コンテナは root で起動し、entrypoint.sh が /userdata の所有者を検出してから権限を落として
+# /docker-entrypoint を実行する（詳細は docker-entrypoint.sh 冒頭のコメントを参照）。
 COPY docker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/sbin/tini", "--", "/entrypoint.sh"]

@@ -1,18 +1,18 @@
 version: 2.1
 
-# 参考 gbase-frontend-onprem 的 CircleCI 逻辑：
-#   原生分架构构建（amd64 / arm64 分别跑在各自原生机器，无需 QEMU 模拟）
-#   → 按 digest 推送（push-by-digest，不产生 -amd64/-arm64 中间标签）
-#   → 合并成单一多架构标签（manifest list）
-# CI（构建 + 推送镜像到 docker.gbase.ai）+ CD（main 分支合并镜像后 SSH 部署到上海服务器）。
+# gbase-frontend-onprem の CircleCI の構成を踏襲している:
+#   アーキテクチャごとのネイティブビルド（amd64 / arm64 をそれぞれのネイティブマシンで実行し、QEMU エミュレーションは不要）
+#   → digest 単位で push（push-by-digest。-amd64/-arm64 の中間タグは作らない）
+#   → 単一のマルチアーキテクチャタグ（manifest list）に統合
+# CI（ビルド + docker.gbase.ai へのイメージ push）+ CD（main ブランチでイメージ統合後、SSH で上海サーバーへデプロイ）。
 #
-# 需要在 CircleCI 项目环境变量中配置：
-#   GBASE_USERNAME / GBASE_PASSWORD —— docker.gbase.ai 登录凭据（对 gptbasesparticle 有推送权限）
-#   ONPREM_DEPLOY_SSH_HOST / ONPREM_DEPLOY_SSH_PORT / ONPREM_DEPLOY_SSH_USER —— 上海服务器 SSH 连接信息
-#   ONPREM_DEPLOY_SSH_KEY_FINGERPRINT —— CircleCI 项目设置 → SSH Keys 上传私钥后返回的 MD5 指纹
+# CircleCI のプロジェクト環境変数に以下の設定が必要:
+#   GBASE_USERNAME / GBASE_PASSWORD —— docker.gbase.ai のログイン認証情報（gptbasesparticle への push 権限が必要）
+#   ONPREM_DEPLOY_SSH_HOST / ONPREM_DEPLOY_SSH_PORT / ONPREM_DEPLOY_SSH_USER —— 上海サーバーの SSH 接続情報
+#   ONPREM_DEPLOY_SSH_KEY_FINGERPRINT —— CircleCI のプロジェクト設定 → SSH Keys で秘密鍵を登録した際に表示される MD5 フィンガープリント
 
 jobs:
-  # 基础校验：前端类型检查 + Go 构建（所有分支）
+  # 基本チェック: フロントエンドの型チェック + Go ビルド（全ブランチ）
   check:
     docker:
       - image: cimg/go:1.26-node
@@ -20,12 +20,12 @@ jobs:
     steps:
       - checkout
       - run:
-          name: 前端依赖安装与类型检查
+          name: フロントエンドの依存関係インストールと型チェック
           command: |
-            # cimg 镜像以非 root 的 circleci 用户运行，而 corepack 的 shim 要写到
-            # node 所在的 /usr/local/bin（该目录属 root，且镜像里已自带 pnpm），
-            # 不加 sudo 会报 EACCES: permission denied, unlink '/usr/local/bin/pnpm'。
-            # 只启用 pnpm 一个 shim，不动 npm/yarn。
+            # cimg イメージは root ではない circleci ユーザーで動くが、corepack の shim は
+            # node のある /usr/local/bin（root 所有で、イメージには pnpm が同梱済み）に書き込むため、
+            # sudo を付けないと EACCES: permission denied, unlink '/usr/local/bin/pnpm' になる。
+            # 有効化するのは pnpm の shim だけで、npm/yarn には触れない。
             sudo corepack enable pnpm
             corepack prepare pnpm@10 --activate
             cd webui
@@ -33,12 +33,12 @@ jobs:
             pnpm run check
             pnpm run build
       - run:
-          name: Go 构建
+          name: Go ビルド
           command: |
             CGO_ENABLED=0 go build -tags tray ./cmd/backrest
             CGO_ENABLED=0 go build ./cmd/docker-entrypoint
 
-  # 生成唯一入口的共享镜像标签（YYYYMMDDHHMMSS，Asia/Tokyo），持久化供各架构与合并 job 共享
+  # 全ジョブ共通の一意なイメージタグ（YYYYMMDDHHMMSS、Asia/Tokyo）を生成し、各アーキテクチャと統合ジョブで共有するため永続化する
   prepare:
     docker:
       - image: cimg/base:current
@@ -46,7 +46,7 @@ jobs:
     working_directory: /tmp/workspace
     steps:
       - run:
-          name: 生成共享镜像标签
+          name: 共有イメージタグの生成
           command: |
             IMAGE_TAG=$(TZ='Asia/Tokyo' date +%Y%m%d%H%M%S)
             mkdir -p /tmp/workspace
@@ -57,7 +57,7 @@ jobs:
           paths:
             - IMAGE_TAG
 
-  # 单架构：在原生架构机器上从源码构建并按 digest 推送
+  # 単一アーキテクチャ: ネイティブアーキテクチャのマシンでソースからビルドし、digest 単位で push する
   docker-build-push-arch:
     machine:
       image: ubuntu-2404:current
@@ -78,15 +78,15 @@ jobs:
       - attach_workspace:
           at: /tmp/workspace
       - run:
-          name: 登录镜像仓库
+          name: イメージレジストリへのログイン
           command: |
             echo "$GBASE_PASSWORD" | docker login docker.gbase.ai -u "$GBASE_USERNAME" --password-stdin
       - run:
-          name: 按 digest 构建并推送（不创建架构标签）
+          name: digest 単位でビルドして push（アーキテクチャ別タグは作らない）
           command: |
             BACKREST_BUILD_VERSION=$(cat /tmp/workspace/IMAGE_TAG)
-            # 使用 buildx 的 container 驱动，支持 push-by-digest：
-            # 只把镜像内容按 digest 推到仓库，不生成任何 -amd64/-arm64 标签
+            # push-by-digest に対応した buildx の container ドライバーを使う:
+            # イメージの中身だけを digest 単位でレジストリへ push し、-amd64/-arm64 タグは一切作らない
             docker buildx create --use --name multiarch >/dev/null 2>&1 || docker buildx use multiarch
             docker buildx build \
               -f << parameters.dockerfile >> \
@@ -95,7 +95,7 @@ jobs:
               --metadata-file /tmp/metadata.json \
               .
             DIGEST=$(jq -r '."containerimage.digest"' /tmp/metadata.json)
-            echo "本架构镜像 digest: $DIGEST"
+            echo "このアーキテクチャのイメージ digest: $DIGEST"
             mkdir -p /tmp/workspace/digests
             echo "$DIGEST" > /tmp/workspace/digests/<< parameters.arch >>
       - persist_to_workspace:
@@ -103,7 +103,7 @@ jobs:
           paths:
             - digests
 
-  # 多架构清单合并：用两架构 digest 合并到统一标签（拉取时按运行架构自动选择）
+  # マルチアーキテクチャのマニフェスト統合: 2 アーキテクチャの digest を共通タグにまとめる（pull 時に実行環境のアーキテクチャが自動選択される）
   docker-manifest-merge:
     machine:
       image: ubuntu-2404:current
@@ -119,7 +119,7 @@ jobs:
       - attach_workspace:
           at: /tmp/workspace
       - run:
-          name: 合并多架构镜像到统一时间戳标签
+          name: マルチアーキテクチャイメージを共通のタイムスタンプタグに統合
           command: |
             echo "$GBASE_PASSWORD" | docker login docker.gbase.ai -u "$GBASE_USERNAME" --password-stdin
             BASE_TAG=$(cat /tmp/workspace/IMAGE_TAG)
@@ -133,36 +133,36 @@ jobs:
               << parameters.repo >>@${ARM_DIGEST}
             docker buildx imagetools inspect << parameters.repo >>:${BASE_TAG}
       - when:
-          # 仅当 deploy=true 且当前分支为 main 时才触发 CD
+          # deploy=true かつ現在のブランチが main の場合のみ CD を実行する
           condition:
             and:
               - << parameters.deploy >>
               - equal: [ main, << pipeline.git.branch >> ]
           steps:
-            # 将预先在 CircleCI 项目设置 → SSH Keys 上传的私钥加载到 ssh-agent
-            # ONPREM_DEPLOY_SSH_KEY_FINGERPRINT 是上传私钥后 CircleCI 返回的 MD5 指纹
+            # CircleCI のプロジェクト設定 → SSH Keys に事前登録した秘密鍵を ssh-agent に読み込む
+            # ONPREM_DEPLOY_SSH_KEY_FINGERPRINT は秘密鍵の登録後に CircleCI が表示する MD5 フィンガープリント
             - add_ssh_keys:
                 fingerprints:
                   - "$ONPREM_DEPLOY_SSH_KEY_FINGERPRINT"
             - run:
-                name: SSH 部署到上海服务器（更新 backrest 镜像并重启）
+                name: SSH で上海サーバーへデプロイ（backrest イメージを更新して再起動）
                 command: |
-                  # 把服务器公钥写入 known_hosts，避免首次连接时的交互确认
+                  # 初回接続時の対話確認を避けるため、サーバーの公開鍵を known_hosts に書き込む
                   mkdir -p ~/.ssh
                   ssh-keyscan -H -p "$ONPREM_DEPLOY_SSH_PORT" "$ONPREM_DEPLOY_SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
-                  # 部署使用合并后的单一标签 BASE_TAG（多架构 manifest），服务器按自身架构自动拉取
-                  # - 本地 shell 展开 $BASE_TAG 组装成远端命令前缀
-                  # - heredoc 使用 'REMOTE' 单引号形式，避免本地对脚本体再次展开
-                  # - sed 直接替换 backrest 的整行 image 字段（兼容任意仓库前缀与任意标签格式）
+                  # デプロイには統合後の単一タグ BASE_TAG（マルチアーキテクチャ manifest）を使い、サーバーは自身のアーキテクチャに合うものを自動で pull する
+                  # - ローカルの shell で $BASE_TAG を展開し、リモートコマンドのプレフィックスを組み立てる
+                  # - heredoc は 'REMOTE' のシングルクォート形式にして、スクリプト本体がローカルで再展開されないようにする
+                  # - sed で backrest の image 行を丸ごと置き換える（任意のレジストリプレフィックス・タグ形式に対応）
                   ssh -p "$ONPREM_DEPLOY_SSH_PORT" "$ONPREM_DEPLOY_SSH_USER@$ONPREM_DEPLOY_SSH_HOST" \
                     "IMAGE_TAG='$BASE_TAG' bash -s" \<<'REMOTE'
                   set -euo pipefail
                   cd gbase_onprem
-                  echo "更新前 backrest 镜像行："
+                  echo "更新前の backrest イメージ行:"
                   grep -E '^[[:space:]]*image:[[:space:]]*[^#[:space:]]*backrest:[0-9]' docker-compose.yml || true
                   sed -i -E "s|^([[:space:]]*)image:[[:space:]]*[^#[:space:]]*backrest:[0-9][^[:space:]]*|\1image: docker.gbase.ai/gptbasesparticle/backrest:${IMAGE_TAG}|" docker-compose.yml
-                  echo "更新后 backrest 镜像行："
+                  echo "更新後の backrest イメージ行:"
                   grep -E "^[[:space:]]*image:[[:space:]]*docker\.gbase\.ai/gptbasesparticle/backrest:${IMAGE_TAG}" docker-compose.yml
                   docker compose down backrest
                   docker compose up backrest -d
@@ -172,7 +172,7 @@ workflows:
   ci:
     jobs:
       - check
-      # 仅 main 分支构建并推送镜像
+      # main ブランチのみイメージをビルドして push する
       - prepare:
           filters:
             branches:
